@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mal3abna - Players</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Mal3abna</h1>
+        <p class="subtitle">Players Management</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="teams.html">Teams</a>
+        <a href="match.html">Match</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container page-grid">
+    <section class="card">
+      <h2>Add Player</h2>
+
+      <form id="playerForm" class="form-stack">
+        <div class="form-group">
+          <label for="playerName">Player Name</label>
+          <input type="text" id="playerName" placeholder="Enter player name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="playerRating">Rating (1-10)</label>
+          <input type="number" id="playerRating" min="1" max="10" value="5" required />
+        </div>
+
+        <div class="form-group">
+          <label for="playerPosition">Preferred Position</label>
+          <select id="playerPosition">
+            <option value="GK">GK</option>
+            <option value="DEF">DEF</option>
+            <option value="MID">MID</option>
+            <option value="ATT">ATT</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Player</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Players List</h2>
+        <button id="clearPlayersBtn" class="btn btn-danger" type="button">Clear All</button>
+      </div>
+
+      <div id="playersEmptyState" class="empty-state">
+        No players added yet.
+      </div>
+
+      <div id="playersList" class="players-list"></div>
+    </section>
+  </main>
+
+  <script src="js/storage.js"></script>
+  <script src="js/players.js"></script>
+</body>
+</html>

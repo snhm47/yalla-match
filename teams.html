@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mal3abna - Teams</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Mal3abna</h1>
+        <p class="subtitle">Split Teams</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="players.html">Players</a>
+        <a href="match.html">Match</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container page-grid">
+    <section class="card">
+      <h2>Generate Teams</h2>
+
+      <div class="form-stack">
+        <div class="form-group">
+          <label for="splitMode">Split Mode</label>
+          <select id="splitMode">
+            <option value="random">Random</option>
+            <option value="balanced">Balanced</option>
+          </select>
+        </div>
+
+        <button id="generateTeamsBtn" class="btn btn-primary" type="button">
+          Generate Teams
+        </button>
+
+        <button id="startMatchBtn" class="btn btn-success" type="button">
+          Save Teams & Start Match
+        </button>
+      </div>
+
+      <div id="teamsMessage" class="message-box"></div>
+    </section>
+
+    <section class="teams-layout">
+      <div class="card team-card">
+        <h2>Team A</h2>
+        <div id="teamAList" class="team-list"></div>
+        <div class="team-footer">
+          <strong>Total Rating:</strong> <span id="teamARating">0</span>
+        </div>
+      </div>
+
+      <div class="card team-card">
+        <h2>Team B</h2>
+        <div id="teamBList" class="team-list"></div>
+        <div class="team-footer">
+          <strong>Total Rating:</strong> <span id="teamBRating">0</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card fairness-card">
+      <h2>Fairness</h2>
+      <p class="fairness-score"><span id="fairnessValue">0%</span></p>
+    </section>
+  </main>
+
+  <script src="js/storage.js"></script>
+  <script src="js/teams.js"></script>
+</body>
+</html>

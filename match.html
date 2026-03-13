@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mal3abna - Match</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Mal3abna</h1>
+        <p class="subtitle">Live Match</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card scoreboard-card">
+      <div class="scoreboard">
+        <div class="score-team">
+          <h2 id="matchTeamAName">Team A</h2>
+          <div id="teamAScore" class="score-number">0</div>
+          <button id="goalTeamABtn" class="btn btn-primary" type="button">+ Goal</button>
+        </div>
+
+        <div class="score-middle">VS</div>
+
+        <div class="score-team">
+          <h2 id="matchTeamBName">Team B</h2>
+          <div id="teamBScore" class="score-number">0</div>
+          <button id="goalTeamBBtn" class="btn btn-primary" type="button">+ Goal</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-grid">
+      <section class="card">
+        <h2>Add Goal Event</h2>
+
+        <form id="goalForm" class="form-stack">
+          <div class="form-group">
+            <label for="goalTeam">Team</label>
+            <select id="goalTeam">
+              <option value="A">Team A</option>
+              <option value="B">Team B</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="goalScorer">Scorer</label>
+            <select id="goalScorer"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="goalMinute">Minute</label>
+            <input type="number" id="goalMinute" min="1" max="120" placeholder="e.g. 15" />
+          </div>
+
+          <button type="submit" class="btn btn-success">Add Goal</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Match Timeline</h2>
+          <button id="undoEventBtn" class="btn btn-warning" type="button">Undo Last Event</button>
+        </div>
+
+        <div id="timelineEmptyState" class="empty-state">
+          No match events yet.
+        </div>
+
+        <div id="timelineList" class="timeline-list"></div>
+
+        <button id="endMatchBtn" class="btn btn-danger full-width" type="button">
+          End Match
+        </button>
+      </section>
+    </section>
+  </main>
+
+  <script src="js/storage.js"></script>
+  <script src="js/match.js"></script>
+</body>
+</html>
