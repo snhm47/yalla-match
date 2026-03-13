@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mal3abna - History</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Mal3abna</h1>
+        <p class="subtitle">Match History</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="match.html">Match</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <div class="section-head">
+        <h2>Saved Matches</h2>
+        <button id="clearHistoryBtn" class="btn btn-danger" type="button">Clear History</button>
+      </div>
+
+      <div id="historyEmptyState" class="empty-state">
+        No matches saved yet.
+      </div>
+
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <script src="js/storage.js"></script>
+  <script src="js/history.js"></script>
+</body>
+</html>
