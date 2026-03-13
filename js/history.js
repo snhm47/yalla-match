@@ -1,23 +1,34 @@
+import {
+  db,
+  collection,
+  getDocs,
+  query,
+  orderBy
+} from "./firebase.js";
+
 const historyList = document.getElementById("historyList");
 const historyEmptyState = document.getElementById("historyEmptyState");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
-function renderHistory() {
-  const history = getMatchHistory();
+async function renderHistory() {
+  const q = query(collection(db, "matches"), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+
   historyList.innerHTML = "";
 
-  if (history.length === 0) {
+  if (snapshot.empty) {
     historyEmptyState.style.display = "block";
     return;
   }
 
   historyEmptyState.style.display = "none";
 
-  history.forEach((match) => {
+  snapshot.forEach((docSnap) => {
+    const match = docSnap.data();
     const item = document.createElement("div");
     item.className = "history-item";
 
-    const scorers = match.events
+    const scorers = (match.events || [])
       .filter((event) => event.type === "goal")
       .map((event) => `${event.minute}' ${event.scorer} (${event.teamName})`)
       .join("<br>");
@@ -36,14 +47,5 @@ function renderHistory() {
   });
 }
 
-function clearHistory() {
-  const confirmed = confirm("Are you sure you want to delete all match history?");
-  if (!confirmed) return;
-
-  saveMatchHistory([]);
-  renderHistory();
-}
-
-clearHistoryBtn.addEventListener("click", clearHistory);
-
+clearHistoryBtn.style.display = "none";
 renderHistory();

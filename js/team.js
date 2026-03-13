@@ -1,3 +1,15 @@
+import {
+  db,
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  setDoc,
+  query,
+  orderBy,
+  serverTimestamp
+} from "./firebase.js";
+
 const splitModeSelect = document.getElementById("splitMode");
 const generateTeamsBtn = document.getElementById("generateTeamsBtn");
 const startMatchBtn = document.getElementById("startMatchBtn");
@@ -7,6 +19,15 @@ const teamARating = document.getElementById("teamARating");
 const teamBRating = document.getElementById("teamBRating");
 const fairnessValue = document.getElementById("fairnessValue");
 const teamsMessage = document.getElementById("teamsMessage");
+
+async function getPlayers() {
+  const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
 
 function shuffle(array) {
   const cloned = [...array];
@@ -24,10 +45,8 @@ function calculateTeamRating(team) {
 function calculateFairness(teamA, teamB) {
   const ratingA = calculateTeamRating(teamA);
   const ratingB = calculateTeamRating(teamB);
-
   const maxRating = Math.max(ratingA, ratingB);
   const minRating = Math.min(ratingA, ratingB);
-
   if (maxRating === 0) return 100;
   return Math.round((minRating / maxRating) * 100);
 }
@@ -35,7 +54,6 @@ function calculateFairness(teamA, teamB) {
 function generateRandomTeams(players) {
   const shuffled = shuffle(players);
   const half = Math.ceil(shuffled.length / 2);
-
   return {
     teamA: shuffled.slice(0, half),
     teamB: shuffled.slice(half)
@@ -44,7 +62,6 @@ function generateRandomTeams(players) {
 
 function generateBalancedTeams(players) {
   const sorted = [...players].sort((a, b) => b.rating - a.rating);
-
   const teamA = [];
   const teamB = [];
   let ratingA = 0;
@@ -82,8 +99,8 @@ function renderTeam(listElement, team) {
   });
 }
 
-function generateTeams() {
-  const players = getPlayers();
+async function generateTeams() {
+  const players = await getPlayers();
 
   if (players.length < 2) {
     teamsMessage.textContent = "Add at least 2 players first.";
@@ -95,44 +112,36 @@ function generateTeams() {
     ? generateBalancedTeams(players)
     : generateRandomTeams(players);
 
-  renderTeam(teamAList, result.teamA);
-  renderTeam(teamBList, result.teamB);
-
   const ratingA = calculateTeamRating(result.teamA);
   const ratingB = calculateTeamRating(result.teamB);
   const fairness = calculateFairness(result.teamA, result.teamB);
 
+  renderTeam(teamAList, result.teamA);
+  renderTeam(teamBList, result.teamB);
   teamARating.textContent = ratingA;
   teamBRating.textContent = ratingB;
   fairnessValue.textContent = `${fairness}%`;
 
-  saveTeams({
-    teamA: {
-      name: "Team A",
-      players: result.teamA,
-      rating: ratingA
-    },
-    teamB: {
-      name: "Team B",
-      players: result.teamB,
-      rating: ratingB
-    },
-    fairness
+  await setDoc(doc(db, "appState", "currentTeams"), {
+    teamA: { name: "Team A", players: result.teamA, rating: ratingA },
+    teamB: { name: "Team B", players: result.teamB, rating: ratingB },
+    fairness,
+    updatedAt: serverTimestamp()
   });
 
   teamsMessage.textContent = "Teams generated successfully.";
 }
 
-function saveTeamsAndStartMatch() {
-  const teams = getTeams();
-
-  if (!teams || teams.teamA.players.length === 0 || teams.teamB.players.length === 0) {
+async function saveTeamsAndStartMatch() {
+  const snap = await getDoc(doc(db, "appState", "currentTeams"));
+  if (!snap.exists()) {
     teamsMessage.textContent = "Generate teams first.";
     return;
   }
 
-  const newMatch = {
-    id: generateId("match"),
+  const teams = snap.data();
+
+  await setDoc(doc(db, "appState", "currentMatch"), {
     date: new Date().toISOString(),
     teamA: {
       name: teams.teamA.name,
@@ -144,17 +153,18 @@ function saveTeamsAndStartMatch() {
       players: teams.teamB.players,
       score: 0
     },
-    events: []
-  };
+    events: [],
+    updatedAt: serverTimestamp()
+  });
 
-  saveCurrentMatch(newMatch);
   window.location.href = "match.html";
 }
 
-function loadExistingTeams() {
-  const teams = getTeams();
-  if (!teams) return;
+async function loadExistingTeams() {
+  const snap = await getDoc(doc(db, "appState", "currentTeams"));
+  if (!snap.exists()) return;
 
+  const teams = snap.data();
   renderTeam(teamAList, teams.teamA.players);
   renderTeam(teamBList, teams.teamB.players);
   teamARating.textContent = teams.teamA.rating;

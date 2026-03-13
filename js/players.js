@@ -1,3 +1,15 @@
+import {
+  db,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  orderBy,
+  serverTimestamp
+} from "./firebase.js";
+
 const playerForm = document.getElementById("playerForm");
 const playerNameInput = document.getElementById("playerName");
 const playerRatingInput = document.getElementById("playerRating");
@@ -6,8 +18,17 @@ const playersList = document.getElementById("playersList");
 const playersEmptyState = document.getElementById("playersEmptyState");
 const clearPlayersBtn = document.getElementById("clearPlayersBtn");
 
-function renderPlayers() {
-  const players = getPlayers();
+async function getPlayers() {
+  const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
+
+async function renderPlayers() {
+  const players = await getPlayers();
   playersList.innerHTML = "";
 
   if (players.length === 0) {
@@ -26,17 +47,18 @@ function renderPlayers() {
         <strong>${player.name}</strong>
         <div class="player-meta">Rating: ${player.rating} | Position: ${player.position}</div>
       </div>
-      <button class="btn btn-danger" data-id="${player.id}">Delete</button>
+      <button class="btn btn-danger">Delete</button>
     `;
 
-    const deleteBtn = item.querySelector("button");
-    deleteBtn.addEventListener("click", () => deletePlayer(player.id));
+    item.querySelector("button").addEventListener("click", async () => {
+      await deletePlayer(player.id);
+    });
 
     playersList.appendChild(item);
   });
 }
 
-function addPlayer(event) {
+async function addPlayer(event) {
   event.preventDefault();
 
   const name = playerNameInput.value.trim();
@@ -53,37 +75,35 @@ function addPlayer(event) {
     return;
   }
 
-  const players = getPlayers();
-
-  const newPlayer = {
-    id: generateId("player"),
+  await addDoc(collection(db, "players"), {
     name,
     rating,
-    position
-  };
-
-  players.push(newPlayer);
-  savePlayers(players);
+    position,
+    createdAt: serverTimestamp()
+  });
 
   playerForm.reset();
   playerRatingInput.value = 5;
   playerPositionInput.value = "GK";
 
-  renderPlayers();
+  await renderPlayers();
 }
 
-function deletePlayer(playerId) {
-  const players = getPlayers().filter((player) => player.id !== playerId);
-  savePlayers(players);
-  renderPlayers();
+async function deletePlayer(playerId) {
+  await deleteDoc(doc(db, "players", playerId));
+  await renderPlayers();
 }
 
-function clearAllPlayers() {
+async function clearAllPlayers() {
   const confirmed = confirm("Are you sure you want to delete all players?");
   if (!confirmed) return;
 
-  savePlayers([]);
-  renderPlayers();
+  const players = await getPlayers();
+  await Promise.all(
+    players.map((player) => deleteDoc(doc(db, "players", player.id)))
+  );
+
+  await renderPlayers();
 }
 
 playerForm.addEventListener("submit", addPlayer);
