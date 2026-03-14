@@ -38,6 +38,20 @@
         </div>
 
         <div class="form-group">
+          <div class="position-toggle">
+            <div class="position-toggle-text">
+              <span class="position-toggle-title">Add position for this player</span>
+              <span class="position-toggle-subtitle">Optional field for preferred role</span>
+            </div>
+
+            <label class="switch">
+              <input type="checkbox" id="usePosition" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group position-group" id="positionGroup">
           <label for="playerPosition">Preferred Position</label>
           <select id="playerPosition">
             <option value="GK">GK</option>

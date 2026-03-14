@@ -113,14 +113,18 @@ function renderTeams(teams) {
 
     const playersHtml = team.players.length
       ? team.players
-          .map(
-            (player) => `
+          .map((player) => {
+            const positionText = player.position
+              ? ` | Position: ${player.position}`
+              : "";
+
+            return `
               <div class="team-player">
                 <strong>${player.name}</strong>
-                <div class="player-meta">Rating: ${player.rating} | Position: ${player.position}</div>
+                <div class="player-meta">Rating: ${player.rating}${positionText}</div>
               </div>
-            `
-          )
+            `;
+          })
           .join("")
       : `<div class="empty-state">No players</div>`;
 
