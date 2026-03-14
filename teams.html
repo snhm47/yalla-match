@@ -13,6 +13,7 @@
         <h1 class="logo">⚽ Mal3abna</h1>
         <p class="subtitle">Split Teams</p>
       </div>
+
       <nav class="top-nav">
         <a href="index.html">Home</a>
         <a href="players.html">Players</a>
@@ -22,7 +23,7 @@
     </div>
   </header>
 
-  <main class="container page-grid">
+  <main class="container">
     <section class="card">
       <h2>Generate Teams</h2>
 
@@ -33,6 +34,16 @@
             <option value="random">Random</option>
             <option value="balanced">Balanced</option>
           </select>
+        </div>
+
+        <div class="form-group">
+          <label for="teamCount">Number of Teams</label>
+          <input type="number" id="teamCount" min="2" value="2" />
+        </div>
+
+        <div class="form-group">
+          <label for="playersPerTeam">Players Per Team</label>
+          <input type="number" id="playersPerTeam" min="1" value="5" />
         </div>
 
         <button id="generateTeamsBtn" class="btn btn-primary" type="button">
@@ -47,32 +58,20 @@
       <div id="teamsMessage" class="message-box"></div>
     </section>
 
-    <section class="teams-layout">
-      <div class="card team-card">
-        <h2>Team A</h2>
-        <div id="teamAList" class="team-list"></div>
-        <div class="team-footer">
-          <strong>Total Rating:</strong> <span id="teamARating">0</span>
-        </div>
-      </div>
-
-      <div class="card team-card">
-        <h2>Team B</h2>
-        <div id="teamBList" class="team-list"></div>
-        <div class="team-footer">
-          <strong>Total Rating:</strong> <span id="teamBRating">0</span>
-        </div>
-      </div>
-    </section>
-
     <section class="card fairness-card">
       <h2>Fairness</h2>
-      <p class="fairness-score"><span id="fairnessValue">0%</span></p>
+      <p class="fairness-score">
+        <span id="fairnessValue">0%</span>
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Generated Teams</h2>
+      <div id="teamsContainer" class="teams-layout"></div>
     </section>
   </main>
 
   <script src="js/storage.js"></script>
-  <!-- <script src="js/team.js"></script> -->
-   <script type="module" src="js/team.js"></script>
+  <script type="module" src="js/team.js"></script>
 </body>
 </html>

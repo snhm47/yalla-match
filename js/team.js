@@ -11,12 +11,11 @@ import {
 } from "./firebase.js";
 
 const splitModeSelect = document.getElementById("splitMode");
+const teamCountInput = document.getElementById("teamCount");
+const playersPerTeamInput = document.getElementById("playersPerTeam");
 const generateTeamsBtn = document.getElementById("generateTeamsBtn");
 const startMatchBtn = document.getElementById("startMatchBtn");
-const teamAList = document.getElementById("teamAList");
-const teamBList = document.getElementById("teamBList");
-const teamARating = document.getElementById("teamARating");
-const teamBRating = document.getElementById("teamBRating");
+const teamsContainer = document.getElementById("teamsContainer");
 const fairnessValue = document.getElementById("fairnessValue");
 const teamsMessage = document.getElementById("teamsMessage");
 
@@ -42,89 +41,150 @@ function calculateTeamRating(team) {
   return team.reduce((sum, player) => sum + Number(player.rating), 0);
 }
 
-function calculateFairness(teamA, teamB) {
-  const ratingA = calculateTeamRating(teamA);
-  const ratingB = calculateTeamRating(teamB);
-  const maxRating = Math.max(ratingA, ratingB);
-  const minRating = Math.min(ratingA, ratingB);
+function calculateOverallFairness(teams) {
+  if (!teams.length) return 100;
+
+  const ratings = teams.map((team) => calculateTeamRating(team.players));
+  const maxRating = Math.max(...ratings);
+  const minRating = Math.min(...ratings);
+
   if (maxRating === 0) return 100;
   return Math.round((minRating / maxRating) * 100);
 }
 
-function generateRandomTeams(players) {
+function generateRandomTeams(players, teamCount, playersPerTeam) {
   const shuffled = shuffle(players);
-  const half = Math.ceil(shuffled.length / 2);
-  return {
-    teamA: shuffled.slice(0, half),
-    teamB: shuffled.slice(half)
-  };
+  const teams = [];
+
+  for (let i = 0; i < teamCount; i++) {
+    const start = i * playersPerTeam;
+    const end = start + playersPerTeam;
+
+    teams.push({
+      name: `Team ${i + 1}`,
+      players: shuffled.slice(start, end)
+    });
+  }
+
+  return teams;
 }
 
-function generateBalancedTeams(players) {
+function generateBalancedTeams(players, teamCount, playersPerTeam) {
   const sorted = [...players].sort((a, b) => b.rating - a.rating);
-  const teamA = [];
-  const teamB = [];
-  let ratingA = 0;
-  let ratingB = 0;
 
-  sorted.forEach((player) => {
-    if (ratingA <= ratingB) {
-      teamA.push(player);
-      ratingA += player.rating;
-    } else {
-      teamB.push(player);
-      ratingB += player.rating;
-    }
-  });
+  const teams = Array.from({ length: teamCount }, (_, index) => ({
+    name: `Team ${index + 1}`,
+    players: [],
+    rating: 0
+  }));
 
-  return { teamA, teamB };
+  for (const player of sorted) {
+    const availableTeams = teams.filter(
+      (team) => team.players.length < playersPerTeam
+    );
+
+    if (availableTeams.length === 0) break;
+
+    availableTeams.sort((a, b) => a.rating - b.rating);
+
+    availableTeams[0].players.push(player);
+    availableTeams[0].rating += Number(player.rating);
+  }
+
+  return teams.map((team) => ({
+    name: team.name,
+    players: team.players
+  }));
 }
 
-function renderTeam(listElement, team) {
-  listElement.innerHTML = "";
+function renderTeams(teams) {
+  teamsContainer.innerHTML = "";
 
-  if (team.length === 0) {
-    listElement.innerHTML = `<div class="empty-state">No players</div>`;
+  if (!teams.length) {
+    teamsContainer.innerHTML = `<div class="empty-state">No teams generated yet.</div>`;
     return;
   }
 
-  team.forEach((player) => {
-    const item = document.createElement("div");
-    item.className = "team-player";
-    item.innerHTML = `
-      <strong>${player.name}</strong>
-      <div class="player-meta">Rating: ${player.rating} | Position: ${player.position}</div>
+  teams.forEach((team) => {
+    const teamRating = calculateTeamRating(team.players);
+
+    const card = document.createElement("div");
+    card.className = "card team-card";
+
+    const playersHtml = team.players.length
+      ? team.players
+          .map(
+            (player) => `
+              <div class="team-player">
+                <strong>${player.name}</strong>
+                <div class="player-meta">Rating: ${player.rating} | Position: ${player.position}</div>
+              </div>
+            `
+          )
+          .join("")
+      : `<div class="empty-state">No players</div>`;
+
+    card.innerHTML = `
+      <h2>${team.name}</h2>
+      <div class="team-list">${playersHtml}</div>
+      <div class="team-footer">
+        <strong>Total Rating:</strong> ${teamRating}
+      </div>
+      <div class="team-footer">
+        <strong>Players:</strong> ${team.players.length}
+      </div>
     `;
-    listElement.appendChild(item);
+
+    teamsContainer.appendChild(card);
   });
 }
 
 async function generateTeams() {
   const players = await getPlayers();
 
-  if (players.length < 2) {
-    teamsMessage.textContent = "Add at least 2 players first.";
+  const teamCount = Number(teamCountInput.value);
+  const playersPerTeam = Number(playersPerTeamInput.value);
+
+  if (teamCount < 2) {
+    teamsMessage.textContent = "Number of teams must be at least 2.";
     return;
   }
 
+  if (playersPerTeam < 1) {
+    teamsMessage.textContent = "Players per team must be at least 1.";
+    return;
+  }
+
+  const neededPlayers = teamCount * playersPerTeam;
+
+  if (players.length < neededPlayers) {
+    teamsMessage.textContent = `You need at least ${neededPlayers} players, but only ${players.length} exist.`;
+    return;
+  }
+
+  const usablePlayers = players.slice(0, neededPlayers);
+
   const mode = splitModeSelect.value;
-  const result = mode === "balanced"
-    ? generateBalancedTeams(players)
-    : generateRandomTeams(players);
+  const generatedTeams =
+    mode === "balanced"
+      ? generateBalancedTeams(usablePlayers, teamCount, playersPerTeam)
+      : generateRandomTeams(usablePlayers, teamCount, playersPerTeam);
 
-  const ratingA = calculateTeamRating(result.teamA);
-  const ratingB = calculateTeamRating(result.teamB);
-  const fairness = calculateFairness(result.teamA, result.teamB);
+  const fairness = calculateOverallFairness(generatedTeams);
 
-  renderTeam(teamAList, result.teamA);
-  renderTeam(teamBList, result.teamB);
-  teamARating.textContent = ratingA;
-  teamBRating.textContent = ratingB;
+  renderTeams(generatedTeams);
   fairnessValue.textContent = `${fairness}%`;
 
+  const teamsForFirebase = generatedTeams.map((team) => ({
+    name: team.name,
+    players: team.players,
+    rating: calculateTeamRating(team.players)
+  }));
+
   await setDoc(doc(db, "appState", "currentTeams"), {
-    teamA: { name: "Team A", players: result.teamA, rating: ratingA },
-    teamB: { name: "Team B", players: result.teamB, rating: ratingB },
+    teams: teamsForFirebase,
+    teamCount,
+    playersPerTeam,
     fairness,
     updatedAt: serverTimestamp()
   });
@@ -134,26 +194,23 @@ async function generateTeams() {
 
 async function saveTeamsAndStartMatch() {
   const snap = await getDoc(doc(db, "appState", "currentTeams"));
+
   if (!snap.exists()) {
     teamsMessage.textContent = "Generate teams first.";
     return;
   }
 
-  const teams = snap.data();
+  const teamsData = snap.data();
 
   await setDoc(doc(db, "appState", "currentMatch"), {
     date: new Date().toISOString(),
-    teamA: {
-      name: teams.teamA.name,
-      players: teams.teamA.players,
+    teams: teamsData.teams.map((team) => ({
+      name: team.name,
+      players: team.players,
       score: 0
-    },
-    teamB: {
-      name: teams.teamB.name,
-      players: teams.teamB.players,
-      score: 0
-    },
+    })),
     events: [],
+    fairness: teamsData.fairness,
     updatedAt: serverTimestamp()
   });
 
@@ -164,12 +221,18 @@ async function loadExistingTeams() {
   const snap = await getDoc(doc(db, "appState", "currentTeams"));
   if (!snap.exists()) return;
 
-  const teams = snap.data();
-  renderTeam(teamAList, teams.teamA.players);
-  renderTeam(teamBList, teams.teamB.players);
-  teamARating.textContent = teams.teamA.rating;
-  teamBRating.textContent = teams.teamB.rating;
-  fairnessValue.textContent = `${teams.fairness}%`;
+  const teamsData = snap.data();
+
+  if (teamsData.teamCount) {
+    teamCountInput.value = teamsData.teamCount;
+  }
+
+  if (teamsData.playersPerTeam) {
+    playersPerTeamInput.value = teamsData.playersPerTeam;
+  }
+
+  renderTeams(teamsData.teams || []);
+  fairnessValue.textContent = `${teamsData.fairness || 0}%`;
 }
 
 generateTeamsBtn.addEventListener("click", generateTeams);
