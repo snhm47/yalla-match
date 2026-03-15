@@ -49,10 +49,6 @@
         <button id="generateTeamsBtn" class="btn btn-primary" type="button">
           Generate Teams
         </button>
-
-        <button id="startMatchBtn" class="btn btn-success" type="button">
-          Save Teams & Start Match
-        </button>
       </div>
 
       <div id="teamsMessage" class="message-box"></div>
@@ -63,6 +59,30 @@
       <p class="fairness-score">
         <span id="fairnessValue">0%</span>
       </p>
+    </section>
+
+    <section class="card">
+      <h2>Choose Match Sides</h2>
+
+      <div class="form-stack">
+        <div class="form-group">
+          <label for="matchTeamASelect">First Side</label>
+          <select id="matchTeamASelect">
+            <option value="">Select first team</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="matchTeamBSelect">Second Side</label>
+          <select id="matchTeamBSelect">
+            <option value="">Select second team</option>
+          </select>
+        </div>
+
+        <button id="startMatchBtn" class="btn btn-success" type="button">
+          Save Teams & Start Match
+        </button>
+      </div>
     </section>
 
     <section class="card">

@@ -18,6 +18,8 @@ const startMatchBtn = document.getElementById("startMatchBtn");
 const teamsContainer = document.getElementById("teamsContainer");
 const fairnessValue = document.getElementById("fairnessValue");
 const teamsMessage = document.getElementById("teamsMessage");
+const matchTeamASelect = document.getElementById("matchTeamASelect");
+const matchTeamBSelect = document.getElementById("matchTeamBSelect");
 
 async function getPlayers() {
   const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
@@ -38,7 +40,7 @@ function shuffle(array) {
 }
 
 function calculateTeamRating(team) {
-  return team.reduce((sum, player) => sum + Number(player.rating), 0);
+  return team.reduce((sum, player) => sum + Number(player.rating || 0), 0);
 }
 
 function calculateOverallFairness(teams) {
@@ -70,7 +72,9 @@ function generateRandomTeams(players, teamCount, playersPerTeam) {
 }
 
 function generateBalancedTeams(players, teamCount, playersPerTeam) {
-  const sorted = [...players].sort((a, b) => b.rating - a.rating);
+  const sorted = [...players].sort(
+    (a, b) => Number(b.rating || 0) - Number(a.rating || 0)
+  );
 
   const teams = Array.from({ length: teamCount }, (_, index) => ({
     name: `Team ${index + 1}`,
@@ -83,12 +87,12 @@ function generateBalancedTeams(players, teamCount, playersPerTeam) {
       (team) => team.players.length < playersPerTeam
     );
 
-    if (availableTeams.length === 0) break;
+    if (!availableTeams.length) break;
 
     availableTeams.sort((a, b) => a.rating - b.rating);
 
     availableTeams[0].players.push(player);
-    availableTeams[0].rating += Number(player.rating);
+    availableTeams[0].rating += Number(player.rating || 0);
   }
 
   return teams.map((team) => ({
@@ -113,18 +117,14 @@ function renderTeams(teams) {
 
     const playersHtml = team.players.length
       ? team.players
-          .map((player) => {
-            const positionText = player.position
-              ? ` | Position: ${player.position}`
-              : "";
-
-            return `
+          .map(
+            (player) => `
               <div class="team-player">
                 <strong>${player.name}</strong>
-                <div class="player-meta">Rating: ${player.rating}${positionText}</div>
+                <div class="player-meta">Rating: ${player.rating} | Position: ${player.position}</div>
               </div>
-            `;
-          })
+            `
+          )
           .join("")
       : `<div class="empty-state">No players</div>`;
 
@@ -141,6 +141,28 @@ function renderTeams(teams) {
 
     teamsContainer.appendChild(card);
   });
+}
+
+function populateMatchSelectors(teams) {
+  matchTeamASelect.innerHTML = `<option value="">Select first team</option>`;
+  matchTeamBSelect.innerHTML = `<option value="">Select second team</option>`;
+
+  teams.forEach((team, index) => {
+    const optionA = document.createElement("option");
+    optionA.value = String(index);
+    optionA.textContent = team.name;
+    matchTeamASelect.appendChild(optionA);
+
+    const optionB = document.createElement("option");
+    optionB.value = String(index);
+    optionB.textContent = team.name;
+    matchTeamBSelect.appendChild(optionB);
+  });
+
+  if (teams.length >= 2) {
+    matchTeamASelect.value = "0";
+    matchTeamBSelect.value = "1";
+  }
 }
 
 async function generateTeams() {
@@ -166,7 +188,7 @@ async function generateTeams() {
     return;
   }
 
-  const usablePlayers = players.slice(0, neededPlayers);
+  const usablePlayers = shuffle(players).slice(0, neededPlayers);
 
   const mode = splitModeSelect.value;
   const generatedTeams =
@@ -177,6 +199,7 @@ async function generateTeams() {
   const fairness = calculateOverallFairness(generatedTeams);
 
   renderTeams(generatedTeams);
+  populateMatchSelectors(generatedTeams);
   fairnessValue.textContent = `${fairness}%`;
 
   const teamsForFirebase = generatedTeams.map((team) => ({
@@ -193,7 +216,7 @@ async function generateTeams() {
     updatedAt: serverTimestamp()
   });
 
-  teamsMessage.textContent = "Teams generated successfully.";
+  teamsMessage.textContent = "Teams generated successfully. Now choose two teams and start the match.";
 }
 
 async function saveTeamsAndStartMatch() {
@@ -205,16 +228,48 @@ async function saveTeamsAndStartMatch() {
   }
 
   const teamsData = snap.data();
+  const teams = teamsData.teams || [];
+
+  if (!teams.length) {
+    teamsMessage.textContent = "No generated teams found.";
+    return;
+  }
+
+  const teamAIndex = Number(matchTeamASelect.value);
+  const teamBIndex = Number(matchTeamBSelect.value);
+
+  if (matchTeamASelect.value === "" || matchTeamBSelect.value === "") {
+    teamsMessage.textContent = "Please choose two teams first.";
+    return;
+  }
+
+  if (teamAIndex === teamBIndex) {
+    teamsMessage.textContent = "Please choose two different teams.";
+    return;
+  }
+
+  const selectedTeamA = teams[teamAIndex];
+  const selectedTeamB = teams[teamBIndex];
+
+  if (!selectedTeamA || !selectedTeamB) {
+    teamsMessage.textContent = "Selected teams are invalid.";
+    return;
+  }
 
   await setDoc(doc(db, "appState", "currentMatch"), {
     date: new Date().toISOString(),
-    teams: teamsData.teams.map((team) => ({
-      name: team.name,
-      players: team.players,
+    teamA: {
+      name: selectedTeamA.name,
+      players: selectedTeamA.players,
       score: 0
-    })),
+    },
+    teamB: {
+      name: selectedTeamB.name,
+      players: selectedTeamB.players,
+      score: 0
+    },
     events: [],
-    fairness: teamsData.fairness,
+    fairness: teamsData.fairness || 0,
     updatedAt: serverTimestamp()
   });
 
@@ -236,6 +291,7 @@ async function loadExistingTeams() {
   }
 
   renderTeams(teamsData.teams || []);
+  populateMatchSelectors(teamsData.teams || []);
   fairnessValue.textContent = `${teamsData.fairness || 0}%`;
 }
 

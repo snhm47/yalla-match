@@ -39,11 +39,13 @@ async function saveCurrentMatch(match) {
 
 async function getMatchOrRedirect() {
   const match = await getCurrentMatch();
+
   if (!match) {
-    alert("No current match found. Please generate teams first.");
+    alert("No current match found. Please generate teams and choose two teams first.");
     window.location.href = "teams.html";
     return null;
   }
+
   return match;
 }
 
@@ -54,6 +56,13 @@ function renderScore(match) {
   teamBScoreEl.textContent = match.teamB.score;
 }
 
+function populateGoalTeamOptions(match) {
+  goalTeamSelect.innerHTML = `
+    <option value="A">${match.teamA.name}</option>
+    <option value="B">${match.teamB.name}</option>
+  `;
+}
+
 async function updateScorersOptions() {
   const match = await getCurrentMatch();
   if (!match) return;
@@ -62,6 +71,7 @@ async function updateScorersOptions() {
   const players = selectedTeam === "A" ? match.teamA.players : match.teamB.players;
 
   goalScorerSelect.innerHTML = "";
+
   players.forEach((player) => {
     const option = document.createElement("option");
     option.value = player.name;
@@ -132,7 +142,7 @@ async function quickAddGoal(teamKey) {
   if (!players.length) return;
 
   goalScorerSelect.value = players[0].name;
-  goalMinuteInput.value = match.events.length + 1;
+  goalMinuteInput.value = String(match.events.length + 1);
 
   await addGoalEvent({ preventDefault() {} });
 }
@@ -144,8 +154,13 @@ async function undoLastEvent() {
   const lastEvent = match.events.pop();
 
   if (lastEvent.type === "goal") {
-    if (lastEvent.team === "A" && match.teamA.score > 0) match.teamA.score -= 1;
-    if (lastEvent.team === "B" && match.teamB.score > 0) match.teamB.score -= 1;
+    if (lastEvent.team === "A" && match.teamA.score > 0) {
+      match.teamA.score -= 1;
+    }
+
+    if (lastEvent.team === "B" && match.teamB.score > 0) {
+      match.teamB.score -= 1;
+    }
   }
 
   await saveCurrentMatch(match);
@@ -173,6 +188,7 @@ async function initMatchPage() {
   if (!match) return;
 
   renderScore(match);
+  populateGoalTeamOptions(match);
   await updateScorersOptions();
   renderTimeline(match);
 }
