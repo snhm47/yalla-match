@@ -8,38 +8,60 @@ import {
 
 const historyList = document.getElementById("historyList");
 const historyEmptyState = document.getElementById("historyEmptyState");
-const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
-async function renderHistory() {
+async function getMatches() {
   const q = query(collection(db, "matches"), orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
 
+function getScorerName(event) {
+  return event.scorerName || event.scorer || "Unknown scorer";
+}
+
+function renderMatches(matches) {
   historyList.innerHTML = "";
 
-  if (snapshot.empty) {
+  if (!matches.length) {
     historyEmptyState.style.display = "block";
     return;
   }
 
   historyEmptyState.style.display = "none";
 
-  snapshot.forEach((docSnap) => {
-    const match = docSnap.data();
+  matches.forEach((match) => {
     const item = document.createElement("div");
     item.className = "history-item";
 
-    const scorers = (match.events || [])
-      .filter((event) => event.type === "goal")
-      .map((event) => `${event.minute}' ${event.scorer} (${event.teamName})`)
-      .join("<br>");
+    const scoreA = match.teamA?.score ?? 0;
+    const scoreB = match.teamB?.score ?? 0;
+    const teamAName = match.teamA?.name || "Team A";
+    const teamBName = match.teamB?.name || "Team B";
+    const leagueText = match.leagueName ? `League: ${match.leagueName}` : "Friendly Match";
 
-    const formattedDate = new Date(match.date).toLocaleString();
+    const goals = (match.events || []).filter((event) => event.type === "goal");
+
+    const goalsHtml = goals.length
+      ? goals
+          .map(
+            (event) => `
+              <div class="player-meta">
+                ${event.minute}' ${getScorerName(event)} (${event.teamName || "Unknown team"})
+              </div>
+            `
+          )
+          .join("")
+      : `<div class="player-meta">No goals recorded.</div>`;
 
     item.innerHTML = `
-      <strong>${match.teamA.name} ${match.teamA.score} - ${match.teamB.score} ${match.teamB.name}</strong>
-      <div class="player-meta">Date: ${formattedDate}</div>
-      <div class="player-meta" style="margin-top: 8px;">
-        ${scorers || "No scorers recorded"}
+      <strong>${teamAName} ${scoreA} - ${scoreB} ${teamBName}</strong>
+      <div class="player-meta">${leagueText}</div>
+      <div class="player-meta">Date: ${new Date(match.date || Date.now()).toLocaleString()}</div>
+      <div style="margin-top:12px;">
+        ${goalsHtml}
       </div>
     `;
 
@@ -47,5 +69,9 @@ async function renderHistory() {
   });
 }
 
-clearHistoryBtn.style.display = "none";
-renderHistory();
+async function initHistoryPage() {
+  const matches = await getMatches();
+  renderMatches(matches);
+}
+
+initHistoryPage();

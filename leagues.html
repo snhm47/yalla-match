@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yala Match - Leagues</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Yala Match</h1>
+        <p class="subtitle">League Management</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="match.html">Match</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container page-grid">
+    <section class="card">
+      <h2>Create League</h2>
+
+      <form id="leagueForm" class="form-stack">
+        <div class="form-group">
+          <label for="leagueName">League Name</label>
+          <input type="text" id="leagueName" placeholder="e.g. Friday League" required />
+        </div>
+
+        <div class="form-group">
+          <label for="leagueSeason">Season</label>
+          <input type="text" id="leagueSeason" placeholder="e.g. 2026" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add League</button>
+      </form>
+
+      <div id="leagueMessage" class="message-box"></div>
+    </section>
+
+    <section class="card">
+      <h2>Leagues & Standings</h2>
+      <div id="leaguesEmptyState" class="empty-state">No leagues added yet.</div>
+      <div id="leaguesList" class="history-list"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/leagues.js"></script>
+</body>
+</html>

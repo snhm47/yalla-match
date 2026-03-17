@@ -25,6 +25,16 @@ function updatePositionVisibility() {
   positionGroup.classList.toggle("show", shouldShow);
 }
 
+function getDefaultStats() {
+  return {
+    matchesPlayed: 0,
+    goals: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0
+  };
+}
+
 async function getPlayers() {
   const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
   const snapshot = await getDocs(q);
@@ -49,14 +59,24 @@ async function renderPlayers() {
     const item = document.createElement("div");
     item.className = "player-item";
 
+    const stats = player.stats || getDefaultStats();
     const positionText = player.position ? player.position : "No position";
 
     item.innerHTML = `
       <div>
         <strong>${player.name}</strong>
-        <div class="player-meta">Rating: ${player.rating} | Position: ${positionText}</div>
+        <div class="player-meta">
+          Rating: ${player.rating} | Position: ${positionText}
+        </div>
+        <div class="player-meta">
+          Matches: ${stats.matchesPlayed} | Goals: ${stats.goals} | Wins: ${stats.wins}
+        </div>
       </div>
-      <button class="btn btn-danger" type="button">Delete</button>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn btn-primary" href="player.html?id=${player.id}" style="text-decoration:none;">View Profile</a>
+        <button class="btn btn-danger" type="button" data-id="${player.id}">Delete</button>
+      </div>
     `;
 
     item.querySelector("button").addEventListener("click", async () => {
@@ -88,6 +108,7 @@ async function addPlayer(event) {
     name,
     rating,
     position,
+    stats: getDefaultStats(),
     createdAt: serverTimestamp()
   });
 

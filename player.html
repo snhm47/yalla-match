@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yala Match - Player Profile</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Yala Match</h1>
+        <p class="subtitle">Player Profile</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="leagues.html">Leagues</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card" id="playerProfileCard">
+      <h2 id="playerNameTitle">Player</h2>
+      <p id="playerBasicInfo">Loading...</p>
+    </section>
+
+    <section class="page-grid">
+      <section class="card">
+        <h2>Stats</h2>
+        <div class="players-list">
+          <div class="player-item"><strong>Matches Played</strong><span id="statMatches">0</span></div>
+          <div class="player-item"><strong>Goals</strong><span id="statGoals">0</span></div>
+          <div class="player-item"><strong>Wins</strong><span id="statWins">0</span></div>
+          <div class="player-item"><strong>Losses</strong><span id="statLosses">0</span></div>
+          <div class="player-item"><strong>Draws</strong><span id="statDraws">0</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Recent Matches</h2>
+        <div id="recentMatchesEmpty" class="empty-state">No matches yet.</div>
+        <div id="recentMatchesList" class="history-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="js/player.js"></script>
+</body>
+</html>

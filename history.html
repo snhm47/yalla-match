@@ -11,34 +11,26 @@
     <div class="container header-row">
       <div>
         <h1 class="logo">⚽ Yala Match</h1>
-        <p class="subtitle">Match History</p>
+        <p class="subtitle">Saved Matches</p>
       </div>
       <nav class="top-nav">
         <a href="index.html">Home</a>
         <a href="players.html">Players</a>
         <a href="teams.html">Teams</a>
         <a href="match.html">Match</a>
+        <a href="leagues.html">Leagues</a>
       </nav>
     </div>
   </header>
 
   <main class="container">
     <section class="card">
-      <div class="section-head">
-        <h2>Saved Matches</h2>
-        <button id="clearHistoryBtn" class="btn btn-danger" type="button">Clear History</button>
-      </div>
-
-      <div id="historyEmptyState" class="empty-state">
-        No matches saved yet.
-      </div>
-
+      <h2>Saved Matches</h2>
+      <div id="historyEmptyState" class="empty-state">No saved matches yet.</div>
       <div id="historyList" class="history-list"></div>
     </section>
   </main>
 
-  <script src="js/storage.js"></script>
-  <!-- <script src="js/history.js"></script> -->
-   <script type="module" src="js/history.js"></script>
+  <script type="module" src="js/history.js"></script>
 </body>
 </html>

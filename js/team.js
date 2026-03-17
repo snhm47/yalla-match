@@ -20,6 +20,7 @@ const fairnessValue = document.getElementById("fairnessValue");
 const teamsMessage = document.getElementById("teamsMessage");
 const matchTeamASelect = document.getElementById("matchTeamASelect");
 const matchTeamBSelect = document.getElementById("matchTeamBSelect");
+const matchLeagueSelect = document.getElementById("matchLeagueSelect");
 
 async function getPlayers() {
   const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
@@ -28,6 +29,29 @@ async function getPlayers() {
     id: docSnap.id,
     ...docSnap.data()
   }));
+}
+
+async function getLeagues() {
+  const q = query(collection(db, "leagues"), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
+
+async function populateLeagueSelect() {
+  const leagues = await getLeagues();
+
+  matchLeagueSelect.innerHTML = `<option value="">Friendly Match</option>`;
+
+  leagues.forEach((league) => {
+    const option = document.createElement("option");
+    option.value = league.id;
+    option.textContent = `${league.name} (${league.season})`;
+    option.dataset.name = league.name;
+    matchLeagueSelect.appendChild(option);
+  });
 }
 
 function shuffle(array) {
@@ -90,7 +114,6 @@ function generateBalancedTeams(players, teamCount, playersPerTeam) {
     if (!availableTeams.length) break;
 
     availableTeams.sort((a, b) => a.rating - b.rating);
-
     availableTeams[0].players.push(player);
     availableTeams[0].rating += Number(player.rating || 0);
   }
@@ -121,7 +144,7 @@ function renderTeams(teams) {
             (player) => `
               <div class="team-player">
                 <strong>${player.name}</strong>
-                <div class="player-meta">Rating: ${player.rating} | Position: ${player.position}</div>
+                <div class="player-meta">Rating: ${player.rating} | Position: ${player.position || "No position"}</div>
               </div>
             `
           )
@@ -131,12 +154,8 @@ function renderTeams(teams) {
     card.innerHTML = `
       <h2>${team.name}</h2>
       <div class="team-list">${playersHtml}</div>
-      <div class="team-footer">
-        <strong>Total Rating:</strong> ${teamRating}
-      </div>
-      <div class="team-footer">
-        <strong>Players:</strong> ${team.players.length}
-      </div>
+      <div class="team-footer"><strong>Total Rating:</strong> ${teamRating}</div>
+      <div class="team-footer"><strong>Players:</strong> ${team.players.length}</div>
     `;
 
     teamsContainer.appendChild(card);
@@ -163,6 +182,31 @@ function populateMatchSelectors(teams) {
     matchTeamASelect.value = "0";
     matchTeamBSelect.value = "1";
   }
+}
+
+function makeLeagueTeamDocId(teamName) {
+  return teamName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || crypto.randomUUID();
+}
+
+async function registerTeamsToLeague(leagueId, teams) {
+  if (!leagueId) return;
+
+  const writes = teams.map((team) =>
+    setDoc(
+      doc(db, "leagues", leagueId, "teams", makeLeagueTeamDocId(team.name)),
+      {
+        name: team.name,
+        createdAt: serverTimestamp()
+      },
+      { merge: true }
+    )
+  );
+
+  await Promise.all(writes);
 }
 
 async function generateTeams() {
@@ -216,7 +260,7 @@ async function generateTeams() {
     updatedAt: serverTimestamp()
   });
 
-  teamsMessage.textContent = "Teams generated successfully. Now choose two teams and start the match.";
+  teamsMessage.textContent = "Teams generated successfully. Choose a league and two match sides.";
 }
 
 async function saveTeamsAndStartMatch() {
@@ -251,13 +295,19 @@ async function saveTeamsAndStartMatch() {
   const selectedTeamA = teams[teamAIndex];
   const selectedTeamB = teams[teamBIndex];
 
-  if (!selectedTeamA || !selectedTeamB) {
-    teamsMessage.textContent = "Selected teams are invalid.";
-    return;
+  const selectedLeagueId = matchLeagueSelect.value || "";
+  const selectedLeagueName = selectedLeagueId
+    ? matchLeagueSelect.options[matchLeagueSelect.selectedIndex].dataset.name
+    : "";
+
+  if (selectedLeagueId) {
+    await registerTeamsToLeague(selectedLeagueId, teams);
   }
 
   await setDoc(doc(db, "appState", "currentMatch"), {
     date: new Date().toISOString(),
+    leagueId: selectedLeagueId,
+    leagueName: selectedLeagueName,
     teamA: {
       name: selectedTeamA.name,
       players: selectedTeamA.players,
@@ -298,4 +348,5 @@ async function loadExistingTeams() {
 generateTeamsBtn.addEventListener("click", generateTeams);
 startMatchBtn.addEventListener("click", saveTeamsAndStartMatch);
 
+populateLeagueSelect();
 loadExistingTeams();
