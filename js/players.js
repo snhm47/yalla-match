@@ -17,6 +17,13 @@ const playerPositionInput = document.getElementById("playerPosition");
 const playersList = document.getElementById("playersList");
 const playersEmptyState = document.getElementById("playersEmptyState");
 const clearPlayersBtn = document.getElementById("clearPlayersBtn");
+const usePositionCheckbox = document.getElementById("usePosition");
+const positionGroup = document.getElementById("positionGroup");
+
+function updatePositionVisibility() {
+  const shouldShow = usePositionCheckbox.checked;
+  positionGroup.classList.toggle("show", shouldShow);
+}
 
 async function getPlayers() {
   const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
@@ -42,12 +49,14 @@ async function renderPlayers() {
     const item = document.createElement("div");
     item.className = "player-item";
 
+    const positionText = player.position ? player.position : "No position";
+
     item.innerHTML = `
       <div>
         <strong>${player.name}</strong>
-        <div class="player-meta">Rating: ${player.rating} | Position: ${player.position}</div>
+        <div class="player-meta">Rating: ${player.rating} | Position: ${positionText}</div>
       </div>
-      <button class="btn btn-danger">Delete</button>
+      <button class="btn btn-danger" type="button">Delete</button>
     `;
 
     item.querySelector("button").addEventListener("click", async () => {
@@ -63,7 +72,7 @@ async function addPlayer(event) {
 
   const name = playerNameInput.value.trim();
   const rating = Number(playerRatingInput.value);
-  const position = playerPositionInput.value;
+  const position = usePositionCheckbox.checked ? playerPositionInput.value : "";
 
   if (!name) {
     alert("Please enter a player name.");
@@ -85,6 +94,8 @@ async function addPlayer(event) {
   playerForm.reset();
   playerRatingInput.value = 5;
   playerPositionInput.value = "GK";
+  usePositionCheckbox.checked = false;
+  updatePositionVisibility();
 
   await renderPlayers();
 }
@@ -106,7 +117,9 @@ async function clearAllPlayers() {
   await renderPlayers();
 }
 
+usePositionCheckbox.addEventListener("change", updatePositionVisibility);
 playerForm.addEventListener("submit", addPlayer);
 clearPlayersBtn.addEventListener("click", clearAllPlayers);
 
+updatePositionVisibility();
 renderPlayers();
