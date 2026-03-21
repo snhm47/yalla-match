@@ -264,6 +264,10 @@ async function createMatch() {
     fairness,
     updatedAt: serverTimestamp()
   });
+  console.log("Creating match with leagueId:", leagueId);
+  console.log("Creating match with leagueName:", leagueName);
+  console.log("Team A:", selectedTeamA);
+  console.log("Team B:", selectedTeamB);
 
   createMatchMessage.textContent = "Match created successfully.";
 

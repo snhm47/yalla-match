@@ -205,10 +205,13 @@ function makeLeagueTeamDocId(teamName) {
 async function registerTeamsToLeague(leagueId, leagueName, teams) {
   if (!leagueId) return;
 
-  const writes = teams.map((team) =>
-    setDoc(
-      doc(db, "leagues", leagueId, "teams", makeLeagueTeamDocId(team.name)),
+  const writes = teams.map((team) => {
+    const teamId = makeLeagueTeamDocId(team.name);
+
+    return setDoc(
+      doc(db, "leagues", leagueId, "teams", teamId),
       {
+        teamId,
         name: team.name,
         leagueId,
         leagueName,
@@ -218,12 +221,13 @@ async function registerTeamsToLeague(leagueId, leagueName, teams) {
           rating: player.rating || 0,
           position: player.position || ""
         })),
+        totalRating: calculateTeamRating(team.players),
         updatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       },
       { merge: true }
-    )
-  );
+    );
+  });
 
   await Promise.all(writes);
 }
@@ -376,11 +380,15 @@ async function startMatch() {
     await registerTeamsToLeague(selectedLeagueId, selectedLeagueName, teams);
   }
 
+  const teamADocId = makeLeagueTeamDocId(selectedTeamA.name);
+  const teamBDocId = makeLeagueTeamDocId(selectedTeamB.name);
+
   await setDoc(doc(db, "appState", "currentMatch"), {
     date: new Date().toISOString(),
     leagueId: selectedLeagueId,
     leagueName: selectedLeagueName,
     teamA: {
+      id: teamADocId,
       name: selectedTeamA.name,
       leagueId: selectedLeagueId,
       leagueName: selectedLeagueName,
@@ -388,6 +396,7 @@ async function startMatch() {
       score: 0
     },
     teamB: {
+      id: teamBDocId,
       name: selectedTeamB.name,
       leagueId: selectedLeagueId,
       leagueName: selectedLeagueName,

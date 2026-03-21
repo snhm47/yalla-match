@@ -703,3 +703,151 @@ hr {
   transform: translateY(0);
   margin-top: 8px;
 }
+
+/* =========================
+   LEAGUE TABLE
+========================= */
+
+.league-card {
+  padding: 18px;
+}
+
+.league-teams-list {
+  margin-top: 14px;
+}
+
+.league-table-wrap {
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045),
+    rgba(255, 255, 255, 0.02)
+  );
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.league-table-header {
+  padding: 18px 18px 10px;
+}
+
+.league-table-title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.league-table-note {
+  margin-top: 5px;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.league-table-scroll {
+  overflow-x: auto;
+}
+
+.league-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.league-table thead tr {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.league-table th {
+  padding: 13px 12px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #eaf2ff;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.league-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.league-table tbody tr {
+  transition: 0.2s ease;
+}
+
+.league-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.league-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.league-table .col-rank,
+.league-table .col-p,
+.league-table .col-w,
+.league-table .col-d,
+.league-table .col-l,
+.league-table .col-gf,
+.league-table .col-ga,
+.league-table .col-gd,
+.league-table .col-pts {
+  text-align: center;
+}
+
+.league-table .col-team {
+  text-align: left;
+  font-weight: 700;
+}
+
+.league-table .rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  color: #dbeafe;
+  font-weight: 800;
+}
+
+.league-table .points-cell {
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.league-table-empty {
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .league-table-wrap {
+    margin-top: 16px;
+    border-radius: 18px;
+  }
+
+  .league-table-header {
+    padding: 16px 16px 8px;
+  }
+
+  .league-table th,
+  .league-table td {
+    padding: 11px 10px;
+    font-size: 0.9rem;
+  }
+
+  .league-table .rank-badge {
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.86rem;
+  }
+}
