@@ -17,6 +17,7 @@
         <a href="index.html">Home</a>
         <a href="players.html">Players</a>
         <a href="teams.html">Teams</a>
+        <a href="saved-teams.html">Saved Teams</a>
         <a href="leagues.html">Leagues</a>
         <a href="history.html">History</a>
       </nav>
@@ -24,9 +25,43 @@
   </header>
 
   <main class="container">
-    <section class="card" id="leagueInfoCard">
-      <h2>Match Type</h2>
-      <p id="leagueInfoText">Loading...</p>
+    <section class="card">
+      <h2>Create Match</h2>
+
+      <div class="form-stack">
+        <div class="form-group">
+          <label for="matchLeagueSelect">Match League</label>
+          <select id="matchLeagueSelect">
+            <option value="">Friendly Match</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="matchTeamASelect">Team A</label>
+          <select id="matchTeamASelect">
+            <option value="">Select Team A</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="matchTeamBSelect">Team B</label>
+          <select id="matchTeamBSelect">
+            <option value="">Select Team B</option>
+          </select>
+        </div>
+
+        <button id="createMatchBtn" class="btn btn-primary" type="button">
+          Create Match
+        </button>
+      </div>
+
+      <div id="createMatchMessage" class="message-box"></div>
+    </section>
+
+    <section class="card">
+      <h2>Match Info</h2>
+      <p id="leagueInfoText">No current match yet.</p>
+      <p><strong>Fairness:</strong> <span id="matchFairnessValue">0%</span></p>
     </section>
 
     <section class="card scoreboard-card">

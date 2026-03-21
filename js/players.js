@@ -75,7 +75,7 @@ async function renderPlayers() {
 
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <a class="btn btn-primary" href="player.html?id=${player.id}" style="text-decoration:none;">View Profile</a>
-        <button class="btn btn-danger" type="button" data-id="${player.id}">Delete</button>
+        <button class="btn btn-danger" type="button">Delete</button>
       </div>
     `;
 

@@ -12,6 +12,12 @@ import {
   serverTimestamp
 } from "./firebase.js";
 
+const matchLeagueSelect = document.getElementById("matchLeagueSelect");
+const matchTeamASelect = document.getElementById("matchTeamASelect");
+const matchTeamBSelect = document.getElementById("matchTeamBSelect");
+const createMatchBtn = document.getElementById("createMatchBtn");
+const createMatchMessage = document.getElementById("createMatchMessage");
+
 const matchTeamAName = document.getElementById("matchTeamAName");
 const matchTeamBName = document.getElementById("matchTeamBName");
 const teamAScoreEl = document.getElementById("teamAScore");
@@ -27,6 +33,7 @@ const endMatchBtn = document.getElementById("endMatchBtn");
 const goalTeamABtn = document.getElementById("goalTeamABtn");
 const goalTeamBBtn = document.getElementById("goalTeamBBtn");
 const leagueInfoText = document.getElementById("leagueInfoText");
+const matchFairnessValue = document.getElementById("matchFairnessValue");
 
 async function getCurrentMatch() {
   const snap = await getDoc(doc(db, "appState", "currentMatch"));
@@ -41,16 +48,8 @@ async function saveCurrentMatch(match) {
   });
 }
 
-async function getMatchOrRedirect() {
-  const match = await getCurrentMatch();
-
-  if (!match) {
-    alert("No current match found. Please generate teams and choose two teams first.");
-    window.location.href = "teams.html";
-    return null;
-  }
-
-  return match;
+async function getMatchOrNull() {
+  return await getCurrentMatch();
 }
 
 async function getAllPlayers() {
@@ -62,10 +61,97 @@ async function getAllPlayers() {
   }));
 }
 
-function renderLeagueInfo(match) {
+async function getLeagues() {
+  const q = query(collection(db, "leagues"), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
+
+async function getSavedTeams() {
+  const q = query(collection(db, "teams"), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
+
+async function getLeagueTeams(leagueId) {
+  const snapshot = await getDocs(collection(db, "leagues", leagueId, "teams"));
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
+
+function calculateTeamRating(players) {
+  return (players || []).reduce((sum, player) => sum + Number(player.rating || 0), 0);
+}
+
+function calculateMatchFairness(teamAPlayers, teamBPlayers) {
+  const ratingA = calculateTeamRating(teamAPlayers);
+  const ratingB = calculateTeamRating(teamBPlayers);
+
+  const maxRating = Math.max(ratingA, ratingB);
+  const minRating = Math.min(ratingA, ratingB);
+
+  if (maxRating === 0) return 100;
+  return Math.round((minRating / maxRating) * 100);
+}
+
+async function populateLeagueSelect() {
+  const leagues = await getLeagues();
+
+  matchLeagueSelect.innerHTML = `<option value="">Friendly Match</option>`;
+
+  leagues.forEach((league) => {
+    const option = document.createElement("option");
+    option.value = league.id;
+    option.textContent = `${league.name} (${league.season || "No season"})`;
+    option.dataset.name = league.name;
+    matchLeagueSelect.appendChild(option);
+  });
+}
+
+function fillTeamSelects(teams) {
+  matchTeamASelect.innerHTML = `<option value="">Select Team A</option>`;
+  matchTeamBSelect.innerHTML = `<option value="">Select Team B</option>`;
+
+  teams.forEach((team) => {
+    const optionA = document.createElement("option");
+    optionA.value = team.id;
+    optionA.textContent = team.name;
+    matchTeamASelect.appendChild(optionA);
+
+    const optionB = document.createElement("option");
+    optionB.value = team.id;
+    optionB.textContent = team.name;
+    matchTeamBSelect.appendChild(optionB);
+  });
+}
+
+async function loadTeamsForSelectedLeague() {
+  const leagueId = matchLeagueSelect.value;
+
+  if (!leagueId) {
+    const allTeams = await getSavedTeams();
+    fillTeamSelects(allTeams);
+    return;
+  }
+
+  const leagueTeams = await getLeagueTeams(leagueId);
+  fillTeamSelects(leagueTeams);
+}
+
+function renderMatchInfo(match) {
   leagueInfoText.textContent = match.leagueName
     ? `League Match: ${match.leagueName}`
     : "Friendly Match";
+
+  matchFairnessValue.textContent = `${match.fairness || 0}%`;
 }
 
 function renderScore(match) {
@@ -110,7 +196,7 @@ function renderTimeline(match) {
   timelineEmptyState.style.display = "none";
 
   match.events.forEach((event) => {
-    const scorerName = event.scorerName || event.scorer || "Unknown scorer";
+    const scorerName = event.scorerName || "Unknown scorer";
     const item = document.createElement("div");
     item.className = "timeline-item";
     item.innerHTML = `<strong>${event.minute}'</strong> - ${scorerName} scored for ${event.teamName}`;
@@ -118,11 +204,87 @@ function renderTimeline(match) {
   });
 }
 
+async function createMatch() {
+  const leagueId = matchLeagueSelect.value || "";
+  const leagueName = leagueId
+    ? matchLeagueSelect.options[matchLeagueSelect.selectedIndex].dataset.name
+    : "";
+
+  const teamAId = matchTeamASelect.value;
+  const teamBId = matchTeamBSelect.value;
+
+  if (!teamAId || !teamBId) {
+    createMatchMessage.textContent = "Please choose both match sides.";
+    return;
+  }
+
+  if (teamAId === teamBId) {
+    createMatchMessage.textContent = "Please choose two different teams.";
+    return;
+  }
+
+  let selectedTeams = [];
+
+  if (!leagueId) {
+    selectedTeams = await getSavedTeams();
+  } else {
+    selectedTeams = await getLeagueTeams(leagueId);
+  }
+
+  const selectedTeamA = selectedTeams.find((team) => team.id === teamAId);
+  const selectedTeamB = selectedTeams.find((team) => team.id === teamBId);
+
+  if (!selectedTeamA || !selectedTeamB) {
+    createMatchMessage.textContent = "Could not find the selected teams.";
+    return;
+  }
+
+  const fairness = calculateMatchFairness(
+    selectedTeamA.players || [],
+    selectedTeamB.players || []
+  );
+
+  await setDoc(doc(db, "appState", "currentMatch"), {
+    date: new Date().toISOString(),
+    leagueId,
+    leagueName,
+    teamA: {
+      id: selectedTeamA.id,
+      name: selectedTeamA.name,
+      players: selectedTeamA.players || [],
+      score: 0
+    },
+    teamB: {
+      id: selectedTeamB.id,
+      name: selectedTeamB.name,
+      players: selectedTeamB.players || [],
+      score: 0
+    },
+    events: [],
+    fairness,
+    updatedAt: serverTimestamp()
+  });
+
+  createMatchMessage.textContent = "Match created successfully.";
+
+  const match = await getCurrentMatch();
+  if (match) {
+    renderMatchInfo(match);
+    renderScore(match);
+    populateGoalTeamOptions(match);
+    await updateScorersOptions();
+    renderTimeline(match);
+  }
+}
+
 async function addGoalEvent(event) {
   event.preventDefault();
 
-  const match = await getMatchOrRedirect();
-  if (!match) return;
+  const match = await getCurrentMatch();
+  if (!match) {
+    createMatchMessage.textContent = "Create a match first.";
+    return;
+  }
 
   const selectedTeam = goalTeamSelect.value;
   const scorerId = goalScorerSelect.value;
@@ -156,11 +318,14 @@ async function addGoalEvent(event) {
 }
 
 async function quickAddGoal(teamKey) {
+  const match = await getCurrentMatch();
+  if (!match) {
+    createMatchMessage.textContent = "Create a match first.";
+    return;
+  }
+
   goalTeamSelect.value = teamKey;
   await updateScorersOptions();
-
-  const match = await getCurrentMatch();
-  if (!match) return;
 
   const players = teamKey === "A" ? match.teamA.players : match.teamB.players;
   if (!players.length) return;
@@ -172,7 +337,7 @@ async function quickAddGoal(teamKey) {
 }
 
 async function undoLastEvent() {
-  const match = await getMatchOrRedirect();
+  const match = await getCurrentMatch();
   if (!match || !match.events.length) return;
 
   const lastEvent = match.events.pop();
@@ -209,7 +374,7 @@ async function updatePlayerStatsForMatch(match) {
     }
   });
 
-  const updates = [];
+  const writes = [];
 
   for (const playerId of [...teamAIds, ...teamBIds]) {
     const player = playersMap.get(playerId);
@@ -244,7 +409,7 @@ async function updatePlayerStatsForMatch(match) {
       draws
     };
 
-    updates.push(
+    writes.push(
       setDoc(doc(db, "players", playerId), {
         ...player,
         stats: updatedStats
@@ -252,12 +417,15 @@ async function updatePlayerStatsForMatch(match) {
     );
   }
 
-  await Promise.all(updates);
+  await Promise.all(writes);
 }
 
 async function endMatch() {
-  const match = await getMatchOrRedirect();
-  if (!match) return;
+  const match = await getCurrentMatch();
+  if (!match) {
+    createMatchMessage.textContent = "Create a match first.";
+    return;
+  }
 
   await addDoc(collection(db, "matches"), {
     ...match,
@@ -272,16 +440,21 @@ async function endMatch() {
 }
 
 async function initMatchPage() {
-  const match = await getMatchOrRedirect();
+  await populateLeagueSelect();
+  await loadTeamsForSelectedLeague();
+
+  const match = await getMatchOrNull();
   if (!match) return;
 
-  renderLeagueInfo(match);
+  renderMatchInfo(match);
   renderScore(match);
   populateGoalTeamOptions(match);
   await updateScorersOptions();
   renderTimeline(match);
 }
 
+matchLeagueSelect.addEventListener("change", loadTeamsForSelectedLeague);
+createMatchBtn.addEventListener("click", createMatch);
 goalTeamSelect.addEventListener("change", updateScorersOptions);
 goalForm.addEventListener("submit", addGoalEvent);
 undoEventBtn.addEventListener("click", undoLastEvent);

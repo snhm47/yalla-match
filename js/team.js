@@ -3,6 +3,7 @@ import {
   collection,
   getDocs,
   getDoc,
+  addDoc,
   doc,
   setDoc,
   query,
@@ -14,6 +15,7 @@ const splitModeSelect = document.getElementById("splitMode");
 const teamCountInput = document.getElementById("teamCount");
 const playersPerTeamInput = document.getElementById("playersPerTeam");
 const generateTeamsBtn = document.getElementById("generateTeamsBtn");
+const saveTeamsBtn = document.getElementById("saveTeamsBtn");
 const startMatchBtn = document.getElementById("startMatchBtn");
 const teamsContainer = document.getElementById("teamsContainer");
 const fairnessValue = document.getElementById("fairnessValue");
@@ -21,6 +23,8 @@ const teamsMessage = document.getElementById("teamsMessage");
 const matchTeamASelect = document.getElementById("matchTeamASelect");
 const matchTeamBSelect = document.getElementById("matchTeamBSelect");
 const matchLeagueSelect = document.getElementById("matchLeagueSelect");
+
+let latestGeneratedTeams = [];
 
 async function getPlayers() {
   const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
@@ -43,12 +47,14 @@ async function getLeagues() {
 async function populateLeagueSelect() {
   const leagues = await getLeagues();
 
+  if (!matchLeagueSelect) return;
+
   matchLeagueSelect.innerHTML = `<option value="">Friendly Match</option>`;
 
   leagues.forEach((league) => {
     const option = document.createElement("option");
     option.value = league.id;
-    option.textContent = `${league.name} (${league.season})`;
+    option.textContent = `${league.name} (${league.season || "No season"})`;
     option.dataset.name = league.name;
     matchLeagueSelect.appendChild(option);
   });
@@ -163,6 +169,8 @@ function renderTeams(teams) {
 }
 
 function populateMatchSelectors(teams) {
+  if (!matchTeamASelect || !matchTeamBSelect) return;
+
   matchTeamASelect.innerHTML = `<option value="">Select first team</option>`;
   matchTeamBSelect.innerHTML = `<option value="">Select second team</option>`;
 
@@ -185,14 +193,16 @@ function populateMatchSelectors(teams) {
 }
 
 function makeLeagueTeamDocId(teamName) {
-  return teamName
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || crypto.randomUUID();
+  return (
+    teamName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || crypto.randomUUID()
+  );
 }
 
-async function registerTeamsToLeague(leagueId, teams) {
+async function registerTeamsToLeague(leagueId, leagueName, teams) {
   if (!leagueId) return;
 
   const writes = teams.map((team) =>
@@ -200,10 +210,39 @@ async function registerTeamsToLeague(leagueId, teams) {
       doc(db, "leagues", leagueId, "teams", makeLeagueTeamDocId(team.name)),
       {
         name: team.name,
+        leagueId,
+        leagueName,
+        players: team.players.map((player) => ({
+          id: player.id,
+          name: player.name,
+          rating: player.rating || 0,
+          position: player.position || ""
+        })),
+        updatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       },
       { merge: true }
     )
+  );
+
+  await Promise.all(writes);
+}
+
+async function saveGeneratedTeamsToCollection(teams, leagueId = "", leagueName = "") {
+  const writes = teams.map((team) =>
+    addDoc(collection(db, "teams"), {
+      name: team.name,
+      leagueId,
+      leagueName,
+      players: team.players.map((player) => ({
+        id: player.id,
+        name: player.name,
+        rating: player.rating || 0,
+        position: player.position || ""
+      })),
+      totalRating: calculateTeamRating(team.players),
+      createdAt: serverTimestamp()
+    })
   );
 
   await Promise.all(writes);
@@ -242,6 +281,8 @@ async function generateTeams() {
 
   const fairness = calculateOverallFairness(generatedTeams);
 
+  latestGeneratedTeams = generatedTeams;
+
   renderTeams(generatedTeams);
   populateMatchSelectors(generatedTeams);
   fairnessValue.textContent = `${fairness}%`;
@@ -260,10 +301,41 @@ async function generateTeams() {
     updatedAt: serverTimestamp()
   });
 
-  teamsMessage.textContent = "Teams generated successfully. Choose a league and two match sides.";
+  teamsMessage.textContent = "Teams generated successfully.";
 }
 
-async function saveTeamsAndStartMatch() {
+async function saveGeneratedTeams() {
+  let teams = latestGeneratedTeams;
+
+  if (!teams.length) {
+    const snap = await getDoc(doc(db, "appState", "currentTeams"));
+    if (snap.exists()) {
+      teams = snap.data().teams || [];
+    }
+  }
+
+  if (!teams.length) {
+    teamsMessage.textContent = "Generate teams first.";
+    return;
+  }
+
+  const selectedLeagueId = matchLeagueSelect?.value || "";
+  const selectedLeagueName = selectedLeagueId
+    ? matchLeagueSelect.options[matchLeagueSelect.selectedIndex].dataset.name
+    : "";
+
+  await saveGeneratedTeamsToCollection(teams, selectedLeagueId, selectedLeagueName);
+
+  if (selectedLeagueId) {
+    await registerTeamsToLeague(selectedLeagueId, selectedLeagueName, teams);
+  }
+
+  teamsMessage.textContent = selectedLeagueId
+    ? "Generated teams saved successfully and linked to the selected league."
+    : "Generated teams saved successfully.";
+}
+
+async function startMatch() {
   const snap = await getDoc(doc(db, "appState", "currentTeams"));
 
   if (!snap.exists()) {
@@ -279,13 +351,13 @@ async function saveTeamsAndStartMatch() {
     return;
   }
 
-  const teamAIndex = Number(matchTeamASelect.value);
-  const teamBIndex = Number(matchTeamBSelect.value);
-
   if (matchTeamASelect.value === "" || matchTeamBSelect.value === "") {
     teamsMessage.textContent = "Please choose two teams first.";
     return;
   }
+
+  const teamAIndex = Number(matchTeamASelect.value);
+  const teamBIndex = Number(matchTeamBSelect.value);
 
   if (teamAIndex === teamBIndex) {
     teamsMessage.textContent = "Please choose two different teams.";
@@ -295,13 +367,13 @@ async function saveTeamsAndStartMatch() {
   const selectedTeamA = teams[teamAIndex];
   const selectedTeamB = teams[teamBIndex];
 
-  const selectedLeagueId = matchLeagueSelect.value || "";
+  const selectedLeagueId = matchLeagueSelect?.value || "";
   const selectedLeagueName = selectedLeagueId
     ? matchLeagueSelect.options[matchLeagueSelect.selectedIndex].dataset.name
     : "";
 
   if (selectedLeagueId) {
-    await registerTeamsToLeague(selectedLeagueId, teams);
+    await registerTeamsToLeague(selectedLeagueId, selectedLeagueName, teams);
   }
 
   await setDoc(doc(db, "appState", "currentMatch"), {
@@ -310,11 +382,15 @@ async function saveTeamsAndStartMatch() {
     leagueName: selectedLeagueName,
     teamA: {
       name: selectedTeamA.name,
+      leagueId: selectedLeagueId,
+      leagueName: selectedLeagueName,
       players: selectedTeamA.players,
       score: 0
     },
     teamB: {
       name: selectedTeamB.name,
+      leagueId: selectedLeagueId,
+      leagueName: selectedLeagueName,
       players: selectedTeamB.players,
       score: 0
     },
@@ -340,13 +416,16 @@ async function loadExistingTeams() {
     playersPerTeamInput.value = teamsData.playersPerTeam;
   }
 
+  latestGeneratedTeams = teamsData.teams || [];
+
   renderTeams(teamsData.teams || []);
   populateMatchSelectors(teamsData.teams || []);
   fairnessValue.textContent = `${teamsData.fairness || 0}%`;
 }
 
 generateTeamsBtn.addEventListener("click", generateTeams);
-startMatchBtn.addEventListener("click", saveTeamsAndStartMatch);
+saveTeamsBtn.addEventListener("click", saveGeneratedTeams);
+startMatchBtn.addEventListener("click", startMatch);
 
 populateLeagueSelect();
 loadExistingTeams();

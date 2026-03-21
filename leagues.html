@@ -17,6 +17,7 @@
         <a href="index.html">Home</a>
         <a href="players.html">Players</a>
         <a href="teams.html">Teams</a>
+        <a href="saved-teams.html">Saved Teams</a>
         <a href="match.html">Match</a>
         <a href="history.html">History</a>
       </nav>
@@ -42,10 +43,34 @@
       </form>
 
       <div id="leagueMessage" class="message-box"></div>
+
+      <hr />
+
+      <h2>Add Team To League</h2>
+
+      <div class="form-stack">
+        <div class="form-group">
+          <label for="leagueSelect">Choose League</label>
+          <select id="leagueSelect">
+            <option value="">Select a league</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="teamSelect">Choose Team</label>
+          <select id="teamSelect">
+            <option value="">Select a team</option>
+          </select>
+        </div>
+
+        <button id="addTeamToLeagueBtn" class="btn btn-success" type="button">
+          Add Team To League
+        </button>
+      </div>
     </section>
 
     <section class="card">
-      <h2>Leagues & Standings</h2>
+      <h2>Leagues & Teams</h2>
       <div id="leaguesEmptyState" class="empty-state">No leagues added yet.</div>
       <div id="leaguesList" class="history-list"></div>
     </section>

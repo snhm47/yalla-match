@@ -20,8 +20,7 @@ const firebaseConfig = {
   projectId: "mal3abna-app",
   storageBucket: "mal3abna-app.firebasestorage.app",
   messagingSenderId: "404906328881",
-  appId: "1:404906328881:web:27f89e188053799e1f6610",
-  measurementId: "G-GTJ2R99ZKS"
+  appId: "1:404906328881:web:27f89e188053799e1f6610"
 };
 
 const app = initializeApp(firebaseConfig);

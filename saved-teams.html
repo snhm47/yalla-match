@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yala Match - History</title>
+  <title>Yala Match - Saved Teams</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -11,27 +11,33 @@
     <div class="container header-row">
       <div>
         <h1 class="logo">⚽ Yala Match</h1>
-        <p class="subtitle">Saved Matches</p>
+        <p class="subtitle">Saved Teams</p>
       </div>
       <nav class="top-nav">
         <a href="index.html">Home</a>
         <a href="players.html">Players</a>
         <a href="teams.html">Teams</a>
-        <a href="saved-teams.html">Saved Teams</a>
         <a href="match.html">Match</a>
         <a href="leagues.html">Leagues</a>
+        <a href="history.html">History</a>
       </nav>
     </div>
   </header>
 
   <main class="container">
     <section class="card">
-      <h2>Saved Matches</h2>
-      <div id="historyEmptyState" class="empty-state">No saved matches yet.</div>
-      <div id="historyList" class="history-list"></div>
+      <div class="section-head">
+        <h2>All Saved Teams</h2>
+      </div>
+
+      <div id="savedTeamsEmptyState" class="empty-state">
+        No saved teams yet.
+      </div>
+
+      <div id="savedTeamsList" class="history-list"></div>
     </section>
   </main>
 
-  <script type="module" src="js/history.js"></script>
+  <script type="module" src="js/saved-teams.js"></script>
 </body>
 </html>
