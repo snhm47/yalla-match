@@ -48,6 +48,18 @@
           <input type="number" id="playersPerTeam" min="1" value="5" />
         </div>
 
+        <div class="form-group">
+          <label for="teamNamesInput">Team Names</label>
+          <input
+            type="text"
+            id="teamNamesInput"
+            placeholder="e.g. Red Lions, Blue Stars, Falcons"
+          />
+          <div class="player-meta">
+            Optional. Separate names with commas. If left empty, default names will be used.
+          </div>
+        </div>
+
         <button id="generateTeamsBtn" class="btn btn-primary" type="button">
           Generate Teams
         </button>

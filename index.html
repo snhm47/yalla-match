@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,56 +6,186 @@
   <title>Yala Match - Home</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body class="home-page">
   <header class="site-header">
-    <div class="container">
-      <h1 class="logo">⚽ Yala Match</h1>
-      <h1 class="logo">Amjad + Salah</h1>
-      <p class="subtitle">Organize your football matches with friends</p>
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Yala Match</h1>
+        <p class="subtitle">Amjad + Salah • Organize your football matches with friends</p>
+      </div>
+
+      <nav class="top-nav">
+        <a href="players.html">Players</a>
+        <a href="teams.html">Split Teams</a>
+        <a href="saved-teams.html">Saved Teams</a>
+        <a href="leagues.html">Leagues</a>
+        <a href="match.html">Start Match</a>
+        <a href="history.html">History</a>
+      </nav>
     </div>
   </header>
 
   <main class="container">
     <section class="hero-card">
-      <h2>Welcome</h2>
-      <p>
-        Add players, split fair teams, track goals, and save match history.
-      </p>
+      <div class="hero-left">
+        <div class="hero-badge">Modern Football Organizer</div>
+        <h2>Build fair teams, run leagues, and track every goal like a real football app.</h2>
+        <p>
+          Add players, save teams, create leagues, start live matches, and keep your full football history in one clean place.
+        </p>
+
+        <div class="hero-actions">
+          <a href="players.html" class="btn btn-primary">Add Players</a>
+          <a href="match.html" class="btn btn-success">Start Match</a>
+        </div>
+
+        <div class="hero-highlights">
+          <div class="highlight-box">
+            <strong>👥 Player Profiles</strong>
+            <span>Store ratings, positions, goals, and match stats.</span>
+          </div>
+          <div class="highlight-box">
+            <strong>🧩 Fair Team Split</strong>
+            <span>Generate balanced teams with fairness score.</span>
+          </div>
+          <div class="highlight-box">
+            <strong>🏆 League Mode</strong>
+            <span>Create leagues, add teams, and follow standings.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="score-panel">
+          <div class="score-panel-top">Latest Match</div>
+
+          <div class="score-panel-match" id="homeLatestMatchTeams">
+            <span>Team A</span>
+            <span>VS</span>
+            <span>Team B</span>
+          </div>
+
+          <!-- <div class="score-panel-value" id="homeLatestMatchScore">-</div> -->
+
+          <div class="score-panel-meta" id="homeLatestMatchMeta">
+            No saved matches yet.
+          </div>
+        </div>
+
+        <!-- <div class="mini-panel left">
+          <div class="mini-icon">📊</div>
+          <div>
+            <strong>Player Stats</strong>
+            <p>Track goals, matches, wins and performance.</p>
+          </div>
+        </div> -->
+
+        <div class="mini-panel right">
+          <div class="mini-icon">⚡</div>
+          <div>
+            <strong>Quick Match Setup</strong>
+            <p>Choose league or friendly and start fast.</p>
+          </div>
+        </div>
+<!-- 
+        <div class="ball-float">⚽</div> -->
+      </div>
     </section>
+
+    <div class="home-section-title">
+      <div>
+        <h2>Everything you need</h2>
+        <p>Open the football tools you use most.</p>
+      </div>
+    </div>
 
     <section class="grid-links">
       <a class="nav-card" href="players.html">
-        <h3>👥 Players</h3>
-        <p>Add and manage players</p>
+        <div class="card-icon">👥</div>
+        <h3>Players</h3>
+        <p>Add and manage players, ratings, positions, and profiles.</p>
       </a>
 
       <a class="nav-card" href="teams.html">
-        <h3>🧩 Split Teams</h3>
-        <p>Generate teams fairly</p>
+        <div class="card-icon">🧩</div>
+        <h3>Split Teams</h3>
+        <p>Generate balanced teams, give them names, and save them.</p>
       </a>
 
       <a class="nav-card" href="saved-teams.html">
-        <h3>🧩 Saved Teams</h3>
-        <p>all the Teams</p>
+        <div class="card-icon">📁</div>
+        <h3>Saved Teams</h3>
+        <p>View all saved teams in the system and manage them.</p>
       </a>
 
       <a class="nav-card" href="leagues.html">
-        <h3>🧩 Leagues</h3>
-        <p>Generate your League</p>
+        <div class="card-icon">🏆</div>
+        <h3>Leagues</h3>
+        <p>Create leagues, add teams, and open league details.</p>
       </a>
 
-      <!-- <a class="nav-card" href="leagues.html">Leagues</a> -->
-
       <a class="nav-card" href="match.html">
-        <h3>🎯 Start Match</h3>
-        <p>Track live goals and score</p>
+        <div class="card-icon">🎯</div>
+        <h3>Start Match</h3>
+        <p>Track goals, manage the timeline, and save the result.</p>
       </a>
 
       <a class="nav-card" href="history.html">
-       <h3>📜 History</h3>
-        <p>See previous matches</p>
+        <div class="card-icon">📜</div>
+        <h3>History</h3>
+        <p>Review previous matches, scorelines, and goal scorers.</p>
       </a>
     </section>
+
+    <section class="bottom-panels">
+      <section class="card">
+        <div class="info-chip">Why Yala Match</div>
+        <h2>Built for football sessions with friends</h2>
+        <p>
+          Keep every game organized from start to finish with a cleaner experience than random notes or WhatsApp messages.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature-item">Fair and balanced team generation</div>
+          <div class="feature-item">Live goals and score tracking</div>
+          <div class="feature-item">League mode with saved teams</div>
+          <div class="feature-item">History and player statistics</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="info-chip blue">Quick Start</div>
+        <h2>How it works</h2>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div>
+              <strong>Add players</strong>
+              <p>Create your football group with ratings and positions.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <strong>Generate teams</strong>
+              <p>Split teams fairly, name them, and save them for later.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <strong>Start the match</strong>
+              <p>Track goals live and save the final result to history.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
   </main>
+
+  <script type="module" src="js/home.js"></script>
 </body>
 </html>

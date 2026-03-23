@@ -14,6 +14,7 @@ import {
 const splitModeSelect = document.getElementById("splitMode");
 const teamCountInput = document.getElementById("teamCount");
 const playersPerTeamInput = document.getElementById("playersPerTeam");
+const teamNamesInput = document.getElementById("teamNamesInput");
 const generateTeamsBtn = document.getElementById("generateTeamsBtn");
 const saveTeamsBtn = document.getElementById("saveTeamsBtn");
 const startMatchBtn = document.getElementById("startMatchBtn");
@@ -84,7 +85,27 @@ function calculateOverallFairness(teams) {
   return Math.round((minRating / maxRating) * 100);
 }
 
-function generateRandomTeams(players, teamCount, playersPerTeam) {
+function getCustomTeamNames(teamCount) {
+  const raw = teamNamesInput?.value?.trim() || "";
+  if (!raw) {
+    return Array.from({ length: teamCount }, (_, index) => `Team ${index + 1}`);
+  }
+
+  const parsedNames = raw
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+  const finalNames = [];
+
+  for (let i = 0; i < teamCount; i++) {
+    finalNames.push(parsedNames[i] || `Team ${i + 1}`);
+  }
+
+  return finalNames;
+}
+
+function generateRandomTeams(players, teamCount, playersPerTeam, teamNames) {
   const shuffled = shuffle(players);
   const teams = [];
 
@@ -93,7 +114,7 @@ function generateRandomTeams(players, teamCount, playersPerTeam) {
     const end = start + playersPerTeam;
 
     teams.push({
-      name: `Team ${i + 1}`,
+      name: teamNames[i],
       players: shuffled.slice(start, end)
     });
   }
@@ -101,13 +122,13 @@ function generateRandomTeams(players, teamCount, playersPerTeam) {
   return teams;
 }
 
-function generateBalancedTeams(players, teamCount, playersPerTeam) {
+function generateBalancedTeams(players, teamCount, playersPerTeam, teamNames) {
   const sorted = [...players].sort(
     (a, b) => Number(b.rating || 0) - Number(a.rating || 0)
   );
 
   const teams = Array.from({ length: teamCount }, (_, index) => ({
-    name: `Team ${index + 1}`,
+    name: teamNames[index],
     players: [],
     rating: 0
   }));
@@ -275,13 +296,14 @@ async function generateTeams() {
     return;
   }
 
+  const teamNames = getCustomTeamNames(teamCount);
   const usablePlayers = shuffle(players).slice(0, neededPlayers);
 
   const mode = splitModeSelect.value;
   const generatedTeams =
     mode === "balanced"
-      ? generateBalancedTeams(usablePlayers, teamCount, playersPerTeam)
-      : generateRandomTeams(usablePlayers, teamCount, playersPerTeam);
+      ? generateBalancedTeams(usablePlayers, teamCount, playersPerTeam, teamNames)
+      : generateRandomTeams(usablePlayers, teamCount, playersPerTeam, teamNames);
 
   const fairness = calculateOverallFairness(generatedTeams);
 
@@ -302,6 +324,7 @@ async function generateTeams() {
     teamCount,
     playersPerTeam,
     fairness,
+    teamNames,
     updatedAt: serverTimestamp()
   });
 
@@ -423,6 +446,10 @@ async function loadExistingTeams() {
 
   if (teamsData.playersPerTeam) {
     playersPerTeamInput.value = teamsData.playersPerTeam;
+  }
+
+  if (teamNamesInput && Array.isArray(teamsData.teamNames) && teamsData.teamNames.length) {
+    teamNamesInput.value = teamsData.teamNames.join(", ");
   }
 
   latestGeneratedTeams = teamsData.teams || [];
