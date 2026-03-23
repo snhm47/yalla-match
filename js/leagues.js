@@ -50,18 +50,6 @@ async function getLeagueTeams(leagueId) {
   }));
 }
 
-async function getLeagueMatches(leagueId) {
-  const q = query(collection(db, "matches"), orderBy("createdAt", "desc"));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs
-    .map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    }))
-    .filter((match) => match.leagueId === leagueId);
-}
-
 async function populateLeagueSelect() {
   const leagues = await getLeagues();
 
@@ -141,6 +129,7 @@ async function addTeamToLeague() {
       teamId,
       name: teamData.name,
       leagueId,
+      leagueName: teamData.leagueName || "",
       players: teamData.players || [],
       totalRating: teamData.totalRating || 0,
       addedAt: serverTimestamp()
@@ -183,145 +172,33 @@ function createTeamHtml(leagueId, team) {
   `;
 }
 
-function buildStandingsFromMatches(teams, matches) {
-  const tableMap = new Map();
+function attachLeagueCardEvents() {
+  leaguesList.querySelectorAll(".league-card").forEach((card) => {
+    card.addEventListener("click", (event) => {
+      const clickedInteractive = event.target.closest("button");
+      if (clickedInteractive) return;
 
-  teams.forEach((team) => {
-    const teamId = team.teamId || team.id;
-
-    tableMap.set(teamId, {
-      teamId,
-      teamName: team.name || "Unknown Team",
-      played: 0,
-      wins: 0,
-      draws: 0,
-      losses: 0,
-      gf: 0,
-      ga: 0,
-      gd: 0,
-      points: 0,
-      rating: team.totalRating || 0
+      const leagueId = card.dataset.leagueId;
+      window.open(`league-details.html?id=${encodeURIComponent(leagueId)}`, "_blank");
     });
   });
 
-  for (const match of matches) {
-    const teamA = match.teamA || {};
-    const teamB = match.teamB || {};
+  leaguesList.querySelectorAll(".remove-team-btn").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const leagueId = button.dataset.leagueId;
+      const teamId = button.dataset.teamId;
+      await removeTeamFromLeague(leagueId, teamId);
+    });
+  });
 
-    const teamAId = teamA.id;
-    const teamBId = teamB.id;
-
-    if (!teamAId || !teamBId) continue;
-    if (!tableMap.has(teamAId) || !tableMap.has(teamBId)) continue;
-
-    const scoreA = Number(teamA.score || 0);
-    const scoreB = Number(teamB.score || 0);
-
-    const rowA = tableMap.get(teamAId);
-    const rowB = tableMap.get(teamBId);
-
-    rowA.played += 1;
-    rowB.played += 1;
-
-    rowA.gf += scoreA;
-    rowA.ga += scoreB;
-
-    rowB.gf += scoreB;
-    rowB.ga += scoreA;
-
-    if (scoreA > scoreB) {
-      rowA.wins += 1;
-      rowA.points += 3;
-      rowB.losses += 1;
-    } else if (scoreB > scoreA) {
-      rowB.wins += 1;
-      rowB.points += 3;
-      rowA.losses += 1;
-    } else {
-      rowA.draws += 1;
-      rowB.draws += 1;
-      rowA.points += 1;
-      rowB.points += 1;
-    }
-  }
-
-  const standings = Array.from(tableMap.values()).map((row) => ({
-    ...row,
-    gd: row.gf - row.ga
-  }));
-
-  standings.sort((a, b) =>
-    b.points - a.points ||
-    b.gd - a.gd ||
-    b.gf - a.gf ||
-    b.wins - a.wins ||
-    b.rating - a.rating ||
-    a.teamName.localeCompare(b.teamName)
-  );
-
-  return standings;
-}
-
-function createLeagueTableHtml(teams, matches) {
-  if (!teams.length) {
-    return `
-      <div class="empty-state league-table-empty">
-        Add teams to this league to show the table.
-      </div>
-    `;
-  }
-
-  const standings = buildStandingsFromMatches(teams, matches);
-
-  const rowsHtml = standings.map((row, index) => `
-    <tr>
-      <td class="col-rank">
-        <span class="rank-badge">${index + 1}</span>
-      </td>
-      <td class="col-team">${row.teamName}</td>
-      <td class="col-p">${row.played}</td>
-      <td class="col-w">${row.wins}</td>
-      <td class="col-d">${row.draws}</td>
-      <td class="col-l">${row.losses}</td>
-      <td class="col-gf">${row.gf}</td>
-      <td class="col-ga">${row.ga}</td>
-      <td class="col-gd">${row.gd}</td>
-      <td class="col-pts points-cell">${row.points}</td>
-    </tr>
-  `).join("");
-
-  return `
-    <div class="league-table-wrap">
-      <div class="league-table-header">
-        <div class="league-table-title">League Table</div>
-        <div class="league-table-note">
-          Updated from played matches in this league.
-        </div>
-      </div>
-
-      <div class="league-table-scroll">
-        <table class="league-table">
-          <thead>
-            <tr>
-              <th class="col-rank">#</th>
-              <th class="col-team">Team</th>
-              <th class="col-p">P</th>
-              <th class="col-w">W</th>
-              <th class="col-d">D</th>
-              <th class="col-l">L</th>
-              <th class="col-gf">GF</th>
-              <th class="col-ga">GA</th>
-              <th class="col-gd">GD</th>
-              <th class="col-pts">Pts</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  leaguesList.querySelectorAll(".delete-league-btn").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const leagueId = button.dataset.leagueId;
+      await deleteLeagueById(leagueId);
+    });
+  });
 }
 
 async function renderLeagues() {
@@ -337,16 +214,15 @@ async function renderLeagues() {
 
   for (const league of leagues) {
     const teams = await getLeagueTeams(league.id);
-    const matches = await getLeagueMatches(league.id);
 
     const item = document.createElement("div");
     item.className = "history-item league-card";
+    item.dataset.leagueId = league.id;
+    item.style.cursor = "pointer";
 
     const teamsHtml = teams.length
       ? teams.map((team) => createTeamHtml(league.id, team)).join("")
       : `<div class="empty-state">No teams added to this league yet.</div>`;
-
-    const leagueTableHtml = createLeagueTableHtml(teams, matches);
 
     item.innerHTML = `
       <div class="section-head">
@@ -354,6 +230,7 @@ async function renderLeagues() {
           <strong>${league.name}</strong>
           <div class="player-meta">Season: ${league.season || "No season"}</div>
           <div class="player-meta">Teams in league: ${teams.length}</div>
+          <div class="player-meta">Click this row to open league details.</div>
         </div>
         <button class="btn btn-danger delete-league-btn" type="button" data-league-id="${league.id}">
           Delete League
@@ -363,27 +240,12 @@ async function renderLeagues() {
       <div class="players-list league-teams-list">
         ${teamsHtml}
       </div>
-
-      ${leagueTableHtml}
     `;
 
     leaguesList.appendChild(item);
   }
 
-  leaguesList.querySelectorAll(".remove-team-btn").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const leagueId = button.dataset.leagueId;
-      const teamId = button.dataset.teamId;
-      await removeTeamFromLeague(leagueId, teamId);
-    });
-  });
-
-  leaguesList.querySelectorAll(".delete-league-btn").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const leagueId = button.dataset.leagueId;
-      await deleteLeagueById(leagueId);
-    });
-  });
+  attachLeagueCardEvents();
 }
 
 leagueForm.addEventListener("submit", addLeague);

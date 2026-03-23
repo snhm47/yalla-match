@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yala Match - League Details</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Yala Match</h1>
+        <p class="subtitle">League Details</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="leagues.html">Leagues</a>
+        <a href="history.html">History</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 id="leagueTitle">League</h2>
+      <p id="leagueMeta" class="player-meta">Loading...</p>
+    </section>
+
+    <section class="card">
+      <h2>Teams In League</h2>
+      <div id="leagueTeamsEmptyState" class="empty-state">No teams in this league yet.</div>
+      <div id="leagueTeamsList" class="players-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>League Table</h2>
+      <div id="leagueTableContainer"></div>
+    </section>
+
+    <section class="card">
+      <h2>League Matches</h2>
+      <div id="leagueMatchesEmptyState" class="empty-state">No matches in this league yet.</div>
+      <div id="leagueMatchesList" class="history-list"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/league-details.js"></script>
+</body>
+</html>
