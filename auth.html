@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yala Match - Login</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="home-page">
+  <main class="container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <section class="card" style="width: min(520px, 100%);">
+      <div class="section-head">
+        <div>
+          <h2 id="authTitle">Login</h2>
+          <p id="authSubtitle">Enter your account to continue to Yala Match.</p>
+        </div>
+      </div>
+
+      <form id="authForm" class="form-stack">
+        <div class="form-group">
+          <label for="authEmail">Email</label>
+          <input type="email" id="authEmail" placeholder="you@example.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="authPassword">Password</label>
+          <input type="password" id="authPassword" placeholder="Enter password" required />
+        </div>
+
+        <div class="form-group">
+          <label for="rememberMe">Session</label>
+          <select id="rememberMe">
+            <option value="local">Remember me</option>
+            <option value="session">Only this tab/session</option>
+          </select>
+        </div>
+
+        <button id="authSubmitBtn" class="btn btn-primary" type="submit">
+          Login
+        </button>
+      </form>
+
+      <div id="authMessage" class="message-box"></div>
+
+      <hr />
+
+      <div class="section-head">
+        <div>
+          <strong id="toggleText">Don't have an account?</strong>
+        </div>
+        <button id="toggleModeBtn" class="btn btn-success" type="button">
+          Create Account
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>
