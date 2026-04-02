@@ -14,6 +14,7 @@ const EMAILJS_SERVICE_ID = "service_iq1qyvy";
 const EMAILJS_TEMPLATE_ID = "invite_friend_real";
 
 const APP_NAME = "Yala Match";
+const APP_BASE_URL = "https://yalla-match-delta.vercel.app";
 
 const workspaceModeText = document.getElementById("workspaceModeText");
 const workspaceOwnerText = document.getElementById("workspaceOwnerText");
@@ -60,10 +61,6 @@ function ensureEmailJsConfigured() {
     });
     emailJsInitialized = true;
   }
-}
-
-function getAppBaseUrl() {
-  return window.location.origin;
 }
 
 function createInviteCard(invite) {
@@ -145,7 +142,7 @@ async function sendRealInviteEmail(recipientEmail, sessionInfo) {
   ensureEmailJsConfigured();
 
   const invitedByEmail = auth.currentUser?.email || "Unknown";
-  const inviteLink = `${getAppBaseUrl()}/invites.html`;
+  const inviteLink = `${APP_BASE_URL}/invites.html`;
 
   const templateParams = {
     recipient_email: recipientEmail,
@@ -197,7 +194,7 @@ sendInviteBtn?.addEventListener("click", async () => {
 
     inviteEmailInput.value = "";
     setInviteMessage(`Invite created and email sent to ${email} successfully.`);
-    await renderPendingInvites();
+    await renderInvitesPage();
   } catch (error) {
     console.error("Invite/email error:", error);
     setInviteMessage(
