@@ -102,6 +102,18 @@ async function ensureUserSession() {
         },
         { merge: true }
       );
+
+      const personalSessionRef = doc(db, "sessions", data.personalSessionId);
+      await setDoc(
+        personalSessionRef,
+        {
+          ownerId: data.ownerId || user.uid,
+          ownerEmail: user.email || "",
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+
       return data.currentSessionId;
     }
   }
@@ -156,8 +168,47 @@ async function getCurrentUserProfile() {
 
 async function getCurrentSessionInfo() {
   const sessionId = await getCurrentSessionId();
-  const sessionSnap = await getDoc(doc(db, "sessions", sessionId));
-  return sessionSnap.exists() ? { id: sessionSnap.id, ...sessionSnap.data() } : null;
+  const sessionRef = doc(db, "sessions", sessionId);
+  const sessionSnap = await getDoc(sessionRef);
+
+  if (!sessionSnap.exists()) {
+    return null;
+  }
+
+  const sessionData = sessionSnap.data() || {};
+  let ownerEmail = sessionData.ownerEmail || "";
+
+  if (!ownerEmail && sessionData.ownerId) {
+    try {
+      const ownerUserSnap = await getDoc(doc(db, "users", sessionData.ownerId));
+      if (ownerUserSnap.exists()) {
+        ownerEmail = ownerUserSnap.data()?.email || "";
+      }
+    } catch (error) {
+      console.error("Could not resolve owner email from owner user doc:", error);
+    }
+
+    if (ownerEmail) {
+      try {
+        await setDoc(
+          sessionRef,
+          {
+            ownerEmail,
+            updatedAt: serverTimestamp()
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.error("Could not backfill ownerEmail into session:", error);
+      }
+    }
+  }
+
+  return {
+    id: sessionSnap.id,
+    ...sessionData,
+    ownerEmail: ownerEmail || sessionData.ownerEmail || ""
+  };
 }
 
 async function createInviteForEmail(email) {
@@ -200,7 +251,7 @@ async function createInviteForEmail(email) {
 
 async function getPendingInvitesForCurrentUser() {
   const user = await waitForAuthUser();
-  const email = user.email || "";
+  const email = normalizeEmail(user.email || "");
 
   const invitesQuery = query(
     collection(db, "invites"),
@@ -228,13 +279,13 @@ async function acceptInvite(inviteId) {
   }
 
   const invite = inviteSnap.data() || {};
-  const userEmail = user.email || "";
+  const userEmail = normalizeEmail(user.email || "");
 
   if (invite.status !== "pending") {
     throw new Error("This invite is no longer pending.");
   }
 
-  if (invite.invitedEmail !== userEmail) {
+  if (normalizeEmail(invite.invitedEmail || "") !== userEmail) {
     throw new Error("This invite does not belong to your account.");
   }
 
@@ -245,7 +296,7 @@ async function acceptInvite(inviteId) {
     sessionRef,
     {
       memberIds: arrayUnion(user.uid),
-      memberEmails: arrayUnion(userEmail),
+      memberEmails: arrayUnion(user.email || ""),
       updatedAt: serverTimestamp()
     },
     { merge: true }

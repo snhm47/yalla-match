@@ -9,7 +9,8 @@ import {
   getCurrentSessionInfo,
   getDoc,
   doc,
-  db
+  db,
+  normalizeEmail
 } from "./firebase.js";
 
 const EMAILJS_PUBLIC_KEY = "IXCeF8_G4cNyxgVeI";
@@ -114,13 +115,24 @@ async function renderWorkspaceInfo() {
     getCurrentSessionInfo()
   ]);
 
-  workspaceModeText.textContent = "Workspace";
-  workspaceOwnerText.textContent = sessionInfo?.ownerEmail || "Unknown";
-  workspaceIdText.textContent = profile?.currentSessionId?.slice(0, 8) || "N/A";
+  if (workspaceModeText) {
+    workspaceModeText.textContent = "Workspace";
+  }
+
+  if (workspaceOwnerText) {
+    workspaceOwnerText.textContent =
+      sessionInfo?.ownerEmail || auth.currentUser?.email || "Unknown";
+  }
+
+  if (workspaceIdText) {
+    workspaceIdText.textContent = profile?.currentSessionId?.slice(0, 8) || "N/A";
+  }
 }
 
 async function renderPendingInvites() {
   const invites = await getPendingInvitesForCurrentUser();
+
+  if (!pendingInvitesList || !pendingInvitesEmpty) return;
 
   pendingInvitesList.innerHTML = "";
 
@@ -150,14 +162,14 @@ async function tryAutoAcceptInviteFromUrl() {
   }
 
   const invite = inviteSnap.data() || {};
-  const currentUserEmail = auth.currentUser?.email || "";
+  const currentUserEmail = normalizeEmail(auth.currentUser?.email || "");
 
   if (invite.status !== "pending") {
     setInviteMessage("This invite is no longer pending.");
     return;
   }
 
-  if (invite.invitedEmail !== currentUserEmail) {
+  if (normalizeEmail(invite.invitedEmail || "") !== currentUserEmail) {
     setInviteMessage(
       `This invite belongs to ${invite.invitedEmail || "another email"}. Please log in with that exact email.`,
       true
@@ -186,7 +198,7 @@ async function sendRealInviteEmail(recipientEmail, sessionInfo, inviteId) {
   const templateParams = {
     recipient_email: recipientEmail,
     invited_by_email: invitedByEmail,
-    workspace_owner: sessionInfo?.ownerEmail || invitedByEmail,
+    workspace_owner: sessionInfo?.ownerEmail || auth.currentUser?.email || invitedByEmail,
     invite_link: inviteLink,
     app_name: APP_NAME
   };
