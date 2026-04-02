@@ -68,14 +68,18 @@ async function waitForAuthUser() {
   if (auth.currentUser) return auth.currentUser;
 
   return await new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      if (user) {
-        resolve(user);
-      } else {
-        reject(new Error("User is not authenticated."));
-      }
-    }, reject);
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (user) => {
+        unsubscribe();
+        if (user) {
+          resolve(user);
+        } else {
+          reject(new Error("User is not authenticated."));
+        }
+      },
+      reject
+    );
   });
 }
 
@@ -83,15 +87,11 @@ async function ensureUserSession() {
   const user = await waitForAuthUser();
   const userRef = doc(db, "users", user.uid);
   const userSnap = await getDoc(userRef);
-
   const normalizedUserEmail = normalizeEmail(user.email || "");
 
   if (userSnap.exists()) {
     const data = userSnap.data() || {};
-    const personalSessionId = data.personalSessionId || "";
-    const currentSessionId = data.currentSessionId || personalSessionId || "";
-
-    if (personalSessionId && currentSessionId) {
+    if (data.personalSessionId && data.currentSessionId) {
       await setDoc(
         userRef,
         {
@@ -102,8 +102,7 @@ async function ensureUserSession() {
         },
         { merge: true }
       );
-
-      return currentSessionId;
+      return data.currentSessionId;
     }
   }
 
@@ -114,7 +113,7 @@ async function ensureUserSession() {
     ownerId: user.uid,
     ownerEmail: user.email || "",
     memberIds: [user.uid],
-    memberEmails: normalizedUserEmail ? [normalizedUserEmail] : [],
+    memberEmails: [user.email || ""],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -137,8 +136,7 @@ async function ensureUserSession() {
 
 async function getCurrentSessionId() {
   const user = await waitForAuthUser();
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
+  const userSnap = await getDoc(doc(db, "users", user.uid));
 
   if (!userSnap.exists()) {
     return await ensureUserSession();
@@ -159,15 +157,7 @@ async function getCurrentUserProfile() {
 async function getCurrentSessionInfo() {
   const sessionId = await getCurrentSessionId();
   const sessionSnap = await getDoc(doc(db, "sessions", sessionId));
-
-  if (!sessionSnap.exists()) {
-    return null;
-  }
-
-  return {
-    id: sessionSnap.id,
-    ...sessionSnap.data()
-  };
+  return sessionSnap.exists() ? { id: sessionSnap.id, ...sessionSnap.data() } : null;
 }
 
 async function createInviteForEmail(email) {
@@ -210,13 +200,11 @@ async function createInviteForEmail(email) {
 
 async function getPendingInvitesForCurrentUser() {
   const user = await waitForAuthUser();
-  const normalizedUserEmail = normalizeEmail(user.email || "");
-
-  if (!normalizedUserEmail) return [];
+  const email = user.email || "";
 
   const invitesQuery = query(
     collection(db, "invites"),
-    where("invitedEmail", "==", normalizedUserEmail),
+    where("invitedEmail", "==", email),
     where("status", "==", "pending")
   );
 
@@ -240,13 +228,13 @@ async function acceptInvite(inviteId) {
   }
 
   const invite = inviteSnap.data() || {};
-  const normalizedUserEmail = normalizeEmail(user.email || "");
+  const userEmail = user.email || "";
 
   if (invite.status !== "pending") {
     throw new Error("This invite is no longer pending.");
   }
 
-  if (invite.invitedEmail !== normalizedUserEmail) {
+  if (invite.invitedEmail !== userEmail) {
     throw new Error("This invite does not belong to your account.");
   }
 
@@ -257,7 +245,7 @@ async function acceptInvite(inviteId) {
     sessionRef,
     {
       memberIds: arrayUnion(user.uid),
-      memberEmails: arrayUnion(normalizedUserEmail),
+      memberEmails: arrayUnion(userEmail),
       updatedAt: serverTimestamp()
     },
     { merge: true }
@@ -268,7 +256,7 @@ async function acceptInvite(inviteId) {
     {
       uid: user.uid,
       email: user.email || "",
-      normalizedEmail: normalizedUserEmail,
+      normalizedEmail: normalizeEmail(user.email || ""),
       currentSessionId: sessionId,
       updatedAt: serverTimestamp()
     },

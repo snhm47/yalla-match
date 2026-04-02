@@ -9,8 +9,7 @@ import {
   getCurrentSessionInfo,
   getDoc,
   doc,
-  db,
-  normalizeEmail
+  db
 } from "./firebase.js";
 
 const EMAILJS_PUBLIC_KEY = "IXCeF8_G4cNyxgVeI";
@@ -51,9 +50,7 @@ function isValidEmail(email) {
 
 function ensureEmailJsConfigured() {
   if (!window.emailjs) {
-    throw new Error(
-      "EmailJS script did not load. Make sure invites.html includes the EmailJS CDN script."
-    );
+    throw new Error("EmailJS script did not load.");
   }
 
   if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) {
@@ -117,23 +114,13 @@ async function renderWorkspaceInfo() {
     getCurrentSessionInfo()
   ]);
 
-  if (workspaceModeText) {
-    workspaceModeText.textContent = "Workspace";
-  }
-
-  if (workspaceOwnerText) {
-    workspaceOwnerText.textContent = sessionInfo?.ownerEmail || "Unknown";
-  }
-
-  if (workspaceIdText) {
-    workspaceIdText.textContent = profile?.currentSessionId?.slice(0, 8) || "N/A";
-  }
+  workspaceModeText.textContent = "Workspace";
+  workspaceOwnerText.textContent = sessionInfo?.ownerEmail || "Unknown";
+  workspaceIdText.textContent = profile?.currentSessionId?.slice(0, 8) || "N/A";
 }
 
 async function renderPendingInvites() {
   const invites = await getPendingInvitesForCurrentUser();
-
-  if (!pendingInvitesList || !pendingInvitesEmpty) return;
 
   pendingInvitesList.innerHTML = "";
 
@@ -155,9 +142,6 @@ async function tryAutoAcceptInviteFromUrl() {
   if (!inviteId || autoAcceptTried) return;
   autoAcceptTried = true;
 
-  const userEmail = normalizeEmail(auth.currentUser?.email || "");
-  if (!userEmail) return;
-
   const inviteSnap = await getDoc(doc(db, "invites", inviteId));
 
   if (!inviteSnap.exists()) {
@@ -166,13 +150,14 @@ async function tryAutoAcceptInviteFromUrl() {
   }
 
   const invite = inviteSnap.data() || {};
+  const currentUserEmail = auth.currentUser?.email || "";
 
   if (invite.status !== "pending") {
     setInviteMessage("This invite is no longer pending.");
     return;
   }
 
-  if (normalizeEmail(invite.invitedEmail || "") !== userEmail) {
+  if (invite.invitedEmail !== currentUserEmail) {
     setInviteMessage(
       `This invite belongs to ${invite.invitedEmail || "another email"}. Please log in with that exact email.`,
       true
@@ -219,7 +204,7 @@ async function renderInvitesPage() {
 }
 
 sendInviteBtn?.addEventListener("click", async () => {
-  const email = inviteEmailInput.value.trim().toLowerCase();
+  const email = inviteEmailInput.value.trim();
 
   if (!email) {
     setInviteMessage("Please enter an email address.", true);
@@ -243,7 +228,7 @@ sendInviteBtn?.addEventListener("click", async () => {
 
     inviteEmailInput.value = "";
     setInviteMessage(`Invite created and email sent to ${email} successfully.`);
-    await renderPendingInvites();
+    await renderInvitesPage();
   } catch (error) {
     console.error("Invite/email error:", error);
     setInviteMessage(
@@ -258,7 +243,10 @@ sendInviteBtn?.addEventListener("click", async () => {
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.href = `auth.html${getInviteIdFromUrl() ? `?invite=${encodeURIComponent(getInviteIdFromUrl())}` : ""}`;
+    const inviteId = getInviteIdFromUrl();
+    window.location.href = inviteId
+      ? `auth.html?invite=${encodeURIComponent(inviteId)}`
+      : "auth.html";
     return;
   }
 
