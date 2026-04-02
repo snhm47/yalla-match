@@ -3,7 +3,9 @@ import {
   collection,
   getDocs,
   query,
-  orderBy
+  where,
+  getCurrentSessionId,
+  sortByCreatedAtDesc
 } from "./firebase.js";
 
 const homeLatestMatchTeams = document.getElementById("homeLatestMatchTeams");
@@ -43,13 +45,16 @@ function getLatestScorerText(match) {
 }
 
 async function getMatches() {
-  const q = query(collection(db, "matches"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "matches"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 function renderMatchBlock(teamAName, teamBName, scoreA, scoreB) {

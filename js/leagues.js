@@ -8,8 +8,10 @@ import {
   doc,
   setDoc,
   query,
-  orderBy,
-  serverTimestamp
+  where,
+  serverTimestamp,
+  getCurrentSessionId,
+  sortByCreatedAtDesc
 } from "./firebase.js";
 
 const leagueForm = document.getElementById("leagueForm");
@@ -25,21 +27,29 @@ const leaguesEmptyState = document.getElementById("leaguesEmptyState");
 const leaguesList = document.getElementById("leaguesList");
 
 async function getLeagues() {
-  const q = query(collection(db, "leagues"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "leagues"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 async function getTeams() {
-  const q = query(collection(db, "teams"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "teams"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 async function getLeagueTeams(leagueId) {
@@ -79,6 +89,7 @@ async function populateTeamSelect() {
 async function addLeague(event) {
   event.preventDefault();
 
+  const sessionId = await getCurrentSessionId();
   const name = leagueNameInput.value.trim();
   const season = leagueSeasonInput.value.trim();
 
@@ -88,6 +99,7 @@ async function addLeague(event) {
   }
 
   await addDoc(collection(db, "leagues"), {
+    sessionId,
     name,
     season,
     createdAt: serverTimestamp()
@@ -101,6 +113,7 @@ async function addLeague(event) {
 }
 
 async function addTeamToLeague() {
+  const sessionId = await getCurrentSessionId();
   const leagueId = leagueSelect.value;
   const teamId = teamSelect.value;
 
@@ -123,10 +136,16 @@ async function addTeamToLeague() {
 
   const teamData = teamSnap.data();
 
+  if (teamData.sessionId !== sessionId) {
+    leagueMessage.textContent = "You cannot add a team from another workspace.";
+    return;
+  }
+
   await setDoc(
     doc(db, "leagues", leagueId, "teams", teamId),
     {
       teamId,
+      sessionId,
       name: teamData.name,
       leagueId,
       leagueName: teamData.leagueName || "",

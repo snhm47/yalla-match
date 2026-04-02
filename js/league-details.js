@@ -5,7 +5,9 @@ import {
   getDoc,
   doc,
   query,
-  orderBy
+  where,
+  getCurrentSessionId,
+  sortByCreatedAtDesc
 } from "./firebase.js";
 
 const leagueTitle = document.getElementById("leagueTitle");
@@ -25,9 +27,14 @@ function getLeagueIdFromUrl() {
 }
 
 async function getLeague(leagueId) {
+  const sessionId = await getCurrentSessionId();
   const snap = await getDoc(doc(db, "leagues", leagueId));
   if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() };
+
+  const league = { id: snap.id, ...snap.data() };
+  if (league.sessionId !== sessionId) return null;
+
+  return league;
 }
 
 async function getLeagueTeams(leagueId) {
@@ -39,15 +46,21 @@ async function getLeagueTeams(leagueId) {
 }
 
 async function getLeagueMatches(leagueId) {
-  const q = query(collection(db, "matches"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(
+    collection(db, "matches"),
+    where("sessionId", "==", sessionId),
+    where("leagueId", "==", leagueId)
+  );
+
   const snapshot = await getDocs(q);
 
-  return snapshot.docs
-    .map((docSnap) => ({
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
       id: docSnap.id,
       ...docSnap.data()
     }))
-    .filter((match) => match.leagueId === leagueId);
+  );
 }
 
 function buildStandingsFromMatches(teams, matches) {
@@ -271,7 +284,7 @@ async function initLeagueDetailsPage() {
 
   if (!league) {
     leagueTitle.textContent = "League not found";
-    leagueMeta.textContent = "This league does not exist.";
+    leagueMeta.textContent = "This league does not exist in your current workspace.";
     return;
   }
 

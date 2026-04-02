@@ -5,7 +5,8 @@ import {
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
+  ensureUserSession
 } from "./firebase.js";
 
 const authForm = document.getElementById("authForm");
@@ -94,6 +95,7 @@ async function handleAuthSubmit(event) {
       await createUserWithEmailAndPassword(auth, email, password);
     }
 
+    await ensureUserSession();
     window.location.href = "index.html";
   } catch (error) {
     authMessage.textContent = getReadableError(error);
@@ -107,9 +109,14 @@ toggleModeBtn.addEventListener("click", () => {
 
 authForm.addEventListener("submit", handleAuthSubmit);
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
-    window.location.href = "index.html";
+    try {
+      await ensureUserSession();
+      window.location.href = "index.html";
+    } catch (error) {
+      console.error("Failed to prepare user session:", error);
+    }
   }
 });
 

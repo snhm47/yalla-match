@@ -5,7 +5,9 @@ import {
   doc,
   collection,
   query,
-  orderBy
+  where,
+  getCurrentSessionId,
+  sortByCreatedAtDesc
 } from "./firebase.js";
 
 const playerNameTitle = document.getElementById("playerNameTitle");
@@ -24,18 +26,28 @@ function getPlayerIdFromUrl() {
 }
 
 async function getPlayer(playerId) {
+  const sessionId = await getCurrentSessionId();
   const snap = await getDoc(doc(db, "players", playerId));
+
   if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() };
+
+  const player = { id: snap.id, ...snap.data() };
+  if (player.sessionId !== sessionId) return null;
+
+  return player;
 }
 
 async function getMatches() {
-  const q = query(collection(db, "matches"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "matches"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 function playerWasInMatch(match, playerId) {
@@ -66,7 +78,9 @@ function renderPlayerInfo(player) {
 function renderRecentMatches(matches, playerId) {
   recentMatchesList.innerHTML = "";
 
-  const playerMatches = matches.filter((match) => playerWasInMatch(match, playerId)).slice(0, 10);
+  const playerMatches = matches
+    .filter((match) => playerWasInMatch(match, playerId))
+    .slice(0, 10);
 
   if (!playerMatches.length) {
     recentMatchesEmpty.style.display = "block";
@@ -106,7 +120,7 @@ async function initPlayerPage() {
 
   if (!player) {
     playerNameTitle.textContent = "Player not found";
-    playerBasicInfo.textContent = "This player does not exist.";
+    playerBasicInfo.textContent = "This player does not exist in your current workspace.";
     return;
   }
 

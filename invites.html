@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yala Match - Invite Friend</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <div>
+        <h1 class="logo">⚽ Yala Match</h1>
+        <p class="subtitle">Invite Friend & Workspace</p>
+      </div>
+      <nav class="top-nav">
+        <a href="index.html">Home</a>
+        <a href="players.html">Players</a>
+        <a href="teams.html">Teams</a>
+        <a href="saved-teams.html">Saved Teams</a>
+        <a href="match.html">Match</a>
+        <a href="leagues.html">Leagues</a>
+        <a href="history.html">History</a>
+        <a href="invites.html">Invite Friend</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container page-grid">
+    <section class="card">
+      <h2>Current Workspace</h2>
+
+      <div class="players-list">
+        <div class="player-item">
+          <strong>Mode</strong>
+          <span id="workspaceModeText">Loading...</span>
+        </div>
+        <div class="player-item">
+          <strong>Owner</strong>
+          <span id="workspaceOwnerText">Loading...</span>
+        </div>
+        <div class="player-item">
+          <strong>Workspace ID</strong>
+          <span id="workspaceIdText">Loading...</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Invite Friend</h2>
+
+      <div class="form-stack">
+        <div class="form-group">
+          <label for="inviteEmailInput">Friend Email</label>
+          <input
+            type="email"
+            id="inviteEmailInput"
+            placeholder="friend@example.com"
+          />
+        </div>
+
+        <button id="sendInviteBtn" class="btn btn-success" type="button">
+          Send Real Invite Email
+        </button>
+      </div>
+
+      <div id="inviteMessage" class="message-box"></div>
+
+      <div class="player-meta" style="margin-top:10px;">
+        This sends a real email and also creates the in-app invite. Your friend must log in with the same email, then accept the invite in the app.
+      </div>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>Pending Invites For Me</h2>
+
+      <div id="pendingInvitesEmpty" class="empty-state">
+        No pending invites.
+      </div>
+
+      <div id="pendingInvitesList" class="history-list"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="js/auth-ui.js"></script>
+
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
+</script>
+
+  <script type="module" src="js/invites.js"></script>
+</body>
+</html>

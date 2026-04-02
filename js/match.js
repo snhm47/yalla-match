@@ -8,8 +8,12 @@ import {
   collection,
   getDocs,
   query,
-  orderBy,
-  serverTimestamp
+  where,
+  serverTimestamp,
+  getCurrentSessionId,
+  getScopedAppStateId,
+  sortByCreatedAtAsc,
+  sortByCreatedAtDesc
 } from "./firebase.js";
 
 const matchLeagueSelect = document.getElementById("matchLeagueSelect");
@@ -36,14 +40,17 @@ const leagueInfoText = document.getElementById("leagueInfoText");
 const matchFairnessValue = document.getElementById("matchFairnessValue");
 
 async function getCurrentMatch() {
-  const snap = await getDoc(doc(db, "appState", "currentMatch"));
+  const sessionId = await getCurrentSessionId();
+  const snap = await getDoc(doc(db, "appState", getScopedAppStateId(sessionId, "currentMatch")));
   if (!snap.exists()) return null;
   return snap.data();
 }
 
 async function saveCurrentMatch(match) {
-  await setDoc(doc(db, "appState", "currentMatch"), {
+  const sessionId = await getCurrentSessionId();
+  await setDoc(doc(db, "appState", getScopedAppStateId(sessionId, "currentMatch")), {
     ...match,
+    sessionId,
     updatedAt: serverTimestamp()
   });
 }
@@ -53,34 +60,47 @@ async function getMatchOrNull() {
 }
 
 async function getAllPlayers() {
-  const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "players"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtAsc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 async function getLeagues() {
-  const q = query(collection(db, "leagues"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "leagues"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 async function getSavedTeams() {
-  const q = query(collection(db, "teams"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "teams"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 async function getLeagueTeams(leagueId) {
   const snapshot = await getDocs(collection(db, "leagues", leagueId, "teams"));
+
   return snapshot.docs.map((docSnap) => ({
     id: docSnap.id,
     ...docSnap.data()
@@ -205,6 +225,8 @@ function renderTimeline(match) {
 }
 
 async function createMatch() {
+  const sessionId = await getCurrentSessionId();
+
   const leagueId = matchLeagueSelect.value || "";
   const leagueName = leagueId
     ? matchLeagueSelect.options[matchLeagueSelect.selectedIndex].dataset.name
@@ -244,7 +266,8 @@ async function createMatch() {
     selectedTeamB.players || []
   );
 
-  await setDoc(doc(db, "appState", "currentMatch"), {
+  await setDoc(doc(db, "appState", getScopedAppStateId(sessionId, "currentMatch")), {
+    sessionId,
     date: new Date().toISOString(),
     leagueId,
     leagueName,
@@ -264,10 +287,6 @@ async function createMatch() {
     fairness,
     updatedAt: serverTimestamp()
   });
-  console.log("Creating match with leagueId:", leagueId);
-  console.log("Creating match with leagueName:", leagueName);
-  console.log("Team A:", selectedTeamA);
-  console.log("Team B:", selectedTeamB);
 
   createMatchMessage.textContent = "Match created successfully.";
 
@@ -414,10 +433,14 @@ async function updatePlayerStatsForMatch(match) {
     };
 
     writes.push(
-      setDoc(doc(db, "players", playerId), {
-        ...player,
-        stats: updatedStats
-      })
+      setDoc(
+        doc(db, "players", playerId),
+        {
+          ...player,
+          stats: updatedStats
+        },
+        { merge: true }
+      )
     );
   }
 
@@ -425,7 +448,9 @@ async function updatePlayerStatsForMatch(match) {
 }
 
 async function endMatch() {
+  const sessionId = await getCurrentSessionId();
   const match = await getCurrentMatch();
+
   if (!match) {
     createMatchMessage.textContent = "Create a match first.";
     return;
@@ -433,11 +458,12 @@ async function endMatch() {
 
   await addDoc(collection(db, "matches"), {
     ...match,
+    sessionId,
     createdAt: serverTimestamp()
   });
 
   await updatePlayerStatsForMatch(match);
-  await deleteDoc(doc(db, "appState", "currentMatch"));
+  await deleteDoc(doc(db, "appState", getScopedAppStateId(sessionId, "currentMatch")));
 
   alert("Match ended and saved to history.");
   window.location.href = "history.html";

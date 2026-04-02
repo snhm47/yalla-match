@@ -1,49 +1,91 @@
-import { auth, onAuthStateChanged, signOut } from "./firebase.js";
+import {
+  auth,
+  onAuthStateChanged,
+  signOut,
+  ensureUserSession,
+  getCurrentSessionInfo,
+  getCurrentUserProfile
+} from "./firebase.js";
 
-function ensureAuthBar() {
-  let authBar = document.getElementById("authBar");
+function ensureHeaderWorkspaceUi() {
+  const headerRow = document.querySelector(".site-header .header-row");
+  if (!headerRow) return null;
 
-  if (!authBar) {
-    authBar = document.createElement("div");
-    authBar.id = "authBar";
-    authBar.className = "container";
-    authBar.style.display = "flex";
-    authBar.style.justifyContent = "space-between";
-    authBar.style.alignItems = "center";
-    authBar.style.gap = "12px";
-    authBar.style.padding = "10px 0";
+  let wrapper = document.getElementById("workspaceHeaderTools");
+  if (wrapper) return wrapper;
 
-    const left = document.createElement("div");
-    left.id = "authBarUser";
-    left.className = "player-meta";
+  wrapper = document.createElement("div");
+  wrapper.id = "workspaceHeaderTools";
+  wrapper.style.display = "flex";
+  wrapper.style.alignItems = "center";
+  wrapper.style.gap = "10px";
+  wrapper.style.flexWrap = "wrap";
+  wrapper.style.marginTop = "10px";
 
-    const right = document.createElement("button");
-    right.id = "logoutBtn";
-    right.className = "btn btn-danger";
-    right.type = "button";
-    right.textContent = "Logout";
+  const workspaceBadge = document.createElement("div");
+  workspaceBadge.id = "workspaceHeaderBadge";
+  workspaceBadge.style.padding = "8px 12px";
+  workspaceBadge.style.borderRadius = "999px";
+  workspaceBadge.style.background = "rgba(255,255,255,0.12)";
+  workspaceBadge.style.color = "#fff";
+  workspaceBadge.style.fontSize = "0.92rem";
+  workspaceBadge.textContent = "Workspace: Loading...";
 
-    authBar.appendChild(left);
-    authBar.appendChild(right);
+  const inviteLink = document.createElement("a");
+  inviteLink.href = "invites.html";
+  inviteLink.textContent = "Invite Friend";
+  inviteLink.className = "btn btn-success";
+  inviteLink.style.textDecoration = "none";
 
-    document.body.insertBefore(authBar, document.body.firstChild);
+  const logoutBtn = document.createElement("button");
+  logoutBtn.className = "btn btn-danger";
+  logoutBtn.textContent = "Logout";
 
-    right.addEventListener("click", async () => {
-      await signOut(auth);
-      window.location.href = "auth.html";
-    });
+  wrapper.appendChild(workspaceBadge);
+  wrapper.appendChild(inviteLink);
+  wrapper.appendChild(logoutBtn);
+
+  const titleBlock = headerRow.firstElementChild;
+  if (titleBlock) {
+    titleBlock.appendChild(wrapper);
+  } else {
+    headerRow.appendChild(wrapper);
   }
 
-  return authBar;
+  logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "auth.html";
+  });
+
+  return wrapper;
 }
 
-onAuthStateChanged(auth, (user) => {
-  const authBar = ensureAuthBar();
-  const authBarUser = authBar.querySelector("#authBarUser");
+async function refreshHeaderWorkspaceUi() {
+  ensureHeaderWorkspaceUi();
 
-  if (user) {
-    authBarUser.textContent = `Logged in as: ${user.email || "User"}`;
-  } else {
-    window.location.href = "auth.html";
+  const badge = document.getElementById("workspaceHeaderBadge");
+
+  const [profile, sessionInfo] = await Promise.all([
+    getCurrentUserProfile(),
+    getCurrentSessionInfo()
+  ]);
+
+  const ownerEmail = sessionInfo?.ownerEmail || "Unknown";
+
+  badge.textContent = `Workspace: ${ownerEmail}`;
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    const existing = document.getElementById("workspaceHeaderTools");
+    if (existing) existing.remove();
+    return;
+  }
+
+  try {
+    await ensureUserSession();
+    await refreshHeaderWorkspaceUi();
+  } catch (error) {
+    console.error(error);
   }
 });

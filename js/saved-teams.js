@@ -5,19 +5,25 @@ import {
   deleteDoc,
   doc,
   query,
-  orderBy
+  where,
+  getCurrentSessionId,
+  sortByCreatedAtDesc
 } from "./firebase.js";
 
 const savedTeamsEmptyState = document.getElementById("savedTeamsEmptyState");
 const savedTeamsList = document.getElementById("savedTeamsList");
 
 async function getSavedTeams() {
-  const q = query(collection(db, "teams"), orderBy("createdAt", "desc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "teams"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 async function removeTeam(teamId) {

@@ -6,8 +6,10 @@ import {
   deleteDoc,
   doc,
   query,
-  orderBy,
-  serverTimestamp
+  where,
+  serverTimestamp,
+  getCurrentSessionId,
+  sortByCreatedAtAsc
 } from "./firebase.js";
 
 const playerForm = document.getElementById("playerForm");
@@ -36,12 +38,16 @@ function getDefaultStats() {
 }
 
 async function getPlayers() {
-  const q = query(collection(db, "players"), orderBy("createdAt", "asc"));
+  const sessionId = await getCurrentSessionId();
+  const q = query(collection(db, "players"), where("sessionId", "==", sessionId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
+
+  return sortByCreatedAtAsc(
+    snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }))
+  );
 }
 
 async function renderPlayers() {
@@ -90,6 +96,7 @@ async function renderPlayers() {
 async function addPlayer(event) {
   event.preventDefault();
 
+  const sessionId = await getCurrentSessionId();
   const name = playerNameInput.value.trim();
   const rating = Number(playerRatingInput.value);
   const position = usePositionCheckbox.checked ? playerPositionInput.value : "";
@@ -105,6 +112,7 @@ async function addPlayer(event) {
   }
 
   await addDoc(collection(db, "players"), {
+    sessionId,
     name,
     rating,
     position,
@@ -131,9 +139,7 @@ async function clearAllPlayers() {
   if (!confirmed) return;
 
   const players = await getPlayers();
-  await Promise.all(
-    players.map((player) => deleteDoc(doc(db, "players", player.id)))
-  );
+  await Promise.all(players.map((player) => deleteDoc(doc(db, "players", player.id))));
 
   await renderPlayers();
 }
