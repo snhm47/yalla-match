@@ -68,18 +68,14 @@ async function waitForAuthUser() {
   if (auth.currentUser) return auth.currentUser;
 
   return await new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        unsubscribe();
-        if (user) {
-          resolve(user);
-        } else {
-          reject(new Error("User is not authenticated."));
-        }
-      },
-      reject
-    );
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      if (user) {
+        resolve(user);
+      } else {
+        reject(new Error("User is not authenticated."));
+      }
+    }, reject);
   });
 }
 
@@ -174,34 +170,6 @@ async function getCurrentSessionInfo() {
   };
 }
 
-async function switchToPersonalSession() {
-  const user = await waitForAuthUser();
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
-
-  if (!userSnap.exists()) {
-    return await ensureUserSession();
-  }
-
-  const data = userSnap.data() || {};
-  let personalSessionId = data.personalSessionId || "";
-
-  if (!personalSessionId) {
-    personalSessionId = await ensureUserSession();
-  }
-
-  await setDoc(
-    userRef,
-    {
-      currentSessionId: personalSessionId,
-      updatedAt: serverTimestamp()
-    },
-    { merge: true }
-  );
-
-  return personalSessionId;
-}
-
 async function createInviteForEmail(email) {
   const user = await waitForAuthUser();
   const sessionId = await getCurrentSessionId();
@@ -228,7 +196,7 @@ async function createInviteForEmail(email) {
     throw new Error("That email already has a pending invite.");
   }
 
-  await addDoc(collection(db, "invites"), {
+  const inviteRef = await addDoc(collection(db, "invites"), {
     sessionId,
     invitedEmail,
     invitedByUid: user.uid,
@@ -236,6 +204,8 @@ async function createInviteForEmail(email) {
     status: "pending",
     createdAt: serverTimestamp()
   });
+
+  return inviteRef.id;
 }
 
 async function getPendingInvitesForCurrentUser() {
@@ -352,7 +322,6 @@ export {
   getCurrentUserProfile,
   getCurrentSessionInfo,
   getScopedAppStateId,
-  switchToPersonalSession,
   createInviteForEmail,
   getPendingInvitesForCurrentUser,
   acceptInvite

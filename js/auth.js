@@ -24,16 +24,32 @@ const toggleModeBtn = document.getElementById("toggleModeBtn");
 
 let isLoginMode = true;
 
+function getInviteIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("invite") || "";
+}
+
+function getRedirectAfterAuth() {
+  const inviteId = getInviteIdFromUrl();
+  return inviteId
+    ? `invites.html?invite=${encodeURIComponent(inviteId)}`
+    : "index.html";
+}
+
 function updateModeUI() {
   if (isLoginMode) {
     authTitle.textContent = "Login";
-    authSubtitle.textContent = "Enter your account to continue to Yala Match.";
+    authSubtitle.textContent = getInviteIdFromUrl()
+      ? "Login to accept your invite and join the shared workspace."
+      : "Enter your account to continue to Yala Match.";
     authSubmitBtn.textContent = "Login";
     toggleText.textContent = "Don't have an account?";
     toggleModeBtn.textContent = "Create Account";
   } else {
     authTitle.textContent = "Sign Up";
-    authSubtitle.textContent = "Create your account and enter Yala Match.";
+    authSubtitle.textContent = getInviteIdFromUrl()
+      ? "Create your account to accept the invite and join the shared workspace."
+      : "Create your account and enter Yala Match.";
     authSubmitBtn.textContent = "Sign Up";
     toggleText.textContent = "Already have an account?";
     toggleModeBtn.textContent = "Login";
@@ -96,7 +112,7 @@ async function handleAuthSubmit(event) {
     }
 
     await ensureUserSession();
-    window.location.href = "index.html";
+    window.location.href = getRedirectAfterAuth();
   } catch (error) {
     authMessage.textContent = getReadableError(error);
   }
@@ -113,7 +129,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     try {
       await ensureUserSession();
-      window.location.href = "index.html";
+      window.location.href = getRedirectAfterAuth();
     } catch (error) {
       console.error("Failed to prepare user session:", error);
     }

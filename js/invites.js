@@ -6,7 +6,11 @@ import {
   getPendingInvitesForCurrentUser,
   acceptInvite,
   getCurrentUserProfile,
-  getCurrentSessionInfo
+  getCurrentSessionInfo,
+  getDoc,
+  doc,
+  db,
+  normalizeEmail
 } from "./firebase.js";
 
 const EMAILJS_PUBLIC_KEY = "IXCeF8_G4cNyxgVeI";
@@ -28,6 +32,12 @@ const pendingInvitesList = document.getElementById("pendingInvitesList");
 const pendingInvitesEmpty = document.getElementById("pendingInvitesEmpty");
 
 let emailJsInitialized = false;
+let autoAcceptTried = false;
+
+function getInviteIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("invite") || "";
+}
 
 function setInviteMessage(message, isError = false) {
   if (!inviteMessage) return;
@@ -87,8 +97,9 @@ function createInviteCard(invite) {
       btn.disabled = true;
       btn.textContent = "Accepting...";
       await acceptInvite(invite.id);
-      setInviteMessage("Invite accepted.");
+      setInviteMessage("Invite accepted. You are now inside the shared workspace.");
       await renderInvitesPage();
+      window.location.href = "index.html";
     } catch (error) {
       setInviteMessage(error?.message || "Failed to accept invite.", true);
     } finally {
@@ -138,11 +149,54 @@ async function renderPendingInvites() {
   });
 }
 
-async function sendRealInviteEmail(recipientEmail, sessionInfo) {
+async function tryAutoAcceptInviteFromUrl() {
+  const inviteId = getInviteIdFromUrl();
+
+  if (!inviteId || autoAcceptTried) return;
+  autoAcceptTried = true;
+
+  const userEmail = normalizeEmail(auth.currentUser?.email || "");
+  if (!userEmail) return;
+
+  const inviteSnap = await getDoc(doc(db, "invites", inviteId));
+
+  if (!inviteSnap.exists()) {
+    setInviteMessage("Invite was not found.", true);
+    return;
+  }
+
+  const invite = inviteSnap.data() || {};
+
+  if (invite.status !== "pending") {
+    setInviteMessage("This invite is no longer pending.");
+    return;
+  }
+
+  if (normalizeEmail(invite.invitedEmail || "") !== userEmail) {
+    setInviteMessage(
+      `This invite belongs to ${invite.invitedEmail || "another email"}. Please log in with that exact email.`,
+      true
+    );
+    return;
+  }
+
+  setInviteMessage("Accepting your invite automatically...");
+
+  await acceptInvite(inviteId);
+  setInviteMessage("Invite accepted. You are now inside the shared workspace.");
+
+  await renderInvitesPage();
+
+  setTimeout(() => {
+    window.location.href = "index.html";
+  }, 800);
+}
+
+async function sendRealInviteEmail(recipientEmail, sessionInfo, inviteId) {
   ensureEmailJsConfigured();
 
   const invitedByEmail = auth.currentUser?.email || "Unknown";
-  const inviteLink = `${APP_BASE_URL}/invites.html`;
+  const inviteLink = `${APP_BASE_URL}/auth.html?invite=${encodeURIComponent(inviteId)}`;
 
   const templateParams = {
     recipient_email: recipientEmail,
@@ -151,11 +205,6 @@ async function sendRealInviteEmail(recipientEmail, sessionInfo) {
     invite_link: inviteLink,
     app_name: APP_NAME
   };
-
-  console.log("Sending invite to recipient_email:", recipientEmail);
-  console.log("Invite link:", inviteLink);
-  console.log("EmailJS template:", EMAILJS_TEMPLATE_ID);
-  console.log("EmailJS params:", templateParams);
 
   return await window.emailjs.send(
     EMAILJS_SERVICE_ID,
@@ -187,14 +236,14 @@ sendInviteBtn?.addEventListener("click", async () => {
     sendInviteBtn.textContent = "Sending...";
     setInviteMessage("Creating invite...");
 
-    await createInviteForEmail(email);
-
+    const inviteId = await createInviteForEmail(email);
     const sessionInfo = await getCurrentSessionInfo();
-    await sendRealInviteEmail(email, sessionInfo);
+
+    await sendRealInviteEmail(email, sessionInfo, inviteId);
 
     inviteEmailInput.value = "";
     setInviteMessage(`Invite created and email sent to ${email} successfully.`);
-    await renderInvitesPage();
+    await renderPendingInvites();
   } catch (error) {
     console.error("Invite/email error:", error);
     setInviteMessage(
@@ -209,7 +258,7 @@ sendInviteBtn?.addEventListener("click", async () => {
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.href = "auth.html";
+    window.location.href = `auth.html${getInviteIdFromUrl() ? `?invite=${encodeURIComponent(getInviteIdFromUrl())}` : ""}`;
     return;
   }
 
@@ -217,6 +266,7 @@ onAuthStateChanged(auth, async (user) => {
     await ensureUserSession();
     ensureEmailJsConfigured();
     await renderInvitesPage();
+    await tryAutoAcceptInviteFromUrl();
   } catch (error) {
     console.error("Failed to initialize invites page:", error);
     setInviteMessage(error?.message || "Failed to load invites page.", true);
