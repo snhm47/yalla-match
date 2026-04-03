@@ -6,8 +6,8 @@
   <title>Yala Match - History</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
-  <header class="site-header">
+<body class="history-page">
+    <header class="site-header">
     <div class="container header-row">
       <div>
         <h1 class="logo">⚽ Yala Match</h1>
@@ -26,8 +26,14 @@
   </header>
 
   <main class="container">
-    <section class="card">
-      <h2>History</h2>
+    <section class="card history-card">
+      <div class="history-page-head">
+        <div>
+          <h2>History</h2>
+          <p class="history-page-subtitle">View saved matches with scorelines and scorers.</p>
+        </div>
+      </div>
+
       <div id="historyEmptyState" class="empty-state">No saved matches yet.</div>
       <div id="historyList" class="history-list"></div>
     </section>
